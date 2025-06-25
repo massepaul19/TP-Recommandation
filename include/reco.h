@@ -56,9 +56,13 @@ void ecrire_categories(const char* filename, Categorie categories[], int nb_cate
 
 void ecrire_transactions(const char* filename, Transaction transactions[], int nb_transactions);
 
+int Lire_Transaction(FILE *file, Transaction *t);
+
 void ajouter_transaction(User users[], int* nb_users, Article articles[], int* nb_articles, Categorie categories[], int* nb_categories, Transaction transac[], int* nb_transactions, Transaction nouvelle_transaction);
 
 int compter_transactions(const char* filename, Transaction transactions[], int max_transactions);
+
+void charger_donnees(User users[], int* nb_users, Article articles[], int* nb_articles, Categorie categories[], int* nb_categories, Transaction transactions[], int* nb_transactions);
 
 
 //------ Fonctions d'aide ----------------
@@ -67,6 +71,12 @@ User* trouver_utilisateur(User users[], int nb_users, unsigned int id_user);
 Article* trouver_article(Article articles[], int nb_articles, unsigned int id_article);
 Categorie* trouver_categorie(Categorie categories[], int nb_categories, unsigned int id_cat);
 
+//------ Autres Utilitaires ----------------
+//Extraction
+
+void extraire_vers_fichier(const char *fichier_entree, const char *fichier_sortie, int ligne_debut, int ligne_fin);
+
+//######################################################
 
 //------ Fonctions de devoir ----------------
 
@@ -75,15 +85,30 @@ Categorie* trouver_categorie(Categorie categories[], int nb_categories, unsigned
 
 void afficher_stats(const char* fichier);
 
+//--------------------------------------------------
+
 // Fonction pour extraire les transactions dans une période spécifique
 
 void extraire_transactions_par_periode(const char* fichier_entree, const char* fichier_sortie, time_t t1, time_t t2);
 
+//--------------------------------------------------
+
 //filtrage par frequence min d'apparition
 
-int filtrer_transactions(const char* fichier_entree, const char* fichier_sortie, int minU, int minI);
 
+//Filtrer par utilisateurs uniquement
 
+int filtrer_transactions_par_min_U(const char* fichier_entree, const char* fichier_sortie, int minU);
+
+//Filtrer par articles uniquement
+
+int filtrer_transactions_par_min_I(const char* fichier_entree, const char* fichier_sortie, int minI);
+
+//Filtrer par utilisateurs ET articles
+
+int filtrer_transactions_par_min_U_et_I(const char* fichier_entree, const char* fichier_sortie, int minU, int minI);
+
+//--------------------------------------------------
 // Nettoyage des données
 
 int nettoyer_fichier_test(const char* fichier_train, const char* fichier_test, const char* fichier_clean);

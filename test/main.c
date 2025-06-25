@@ -1,129 +1,93 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include "reco.h"
+#include <string.h>
+#include "menu.h"
 
-int main() {
-    User users[MAX_USERS] = {0};
-    Article articles[MAX_ARTICLES] = {0};
-    Categorie categories[MAX_CATEGORIES] = {0};
-    Transaction transactions[MAX_ARTICLES];
+RecommandeurKNN* recommandeur_global = NULL;
 
-    int nb_users = 0;
-    int nb_articles = 0;
-    int nb_categories = 0;
-    int nb_transactions = 0;
-    
-    // Chargement initial du fichier
-    
-    FILE* file = fopen("data/donnees.txt", "r");
-    if (file == NULL) {
-        printf("Erreur : impossible d'ouvrir le fichier donnees.txt\n");
-        return 1;
-    }
+// Prototypes des fonctions de menu
 
-    Transaction t;
-    while (fscanf(file, "%d %d %d %f %lf", &t.id_user, &t.id_article, &t.id_cat, &t.evaluation, &t.timestamp) == 5) {
-        ajouter_transaction(users, &nb_users, articles, &nb_articles,
-                            categories, &nb_categories, transactions, &nb_transactions, t);
-    }
-    fclose(file);
+//void Menu_Traitement();
+//void Menu_KNN(const char* train_file, const char* test_file);
 
-    // Sauvegarde des données
-    
-    ecrire_users("data/Users.txt", users, nb_users);
-    ecrire_articles("data/Articles.txt", articles, nb_articles);
-    ecrire_categories("data/Categories.txt", categories, nb_categories);
-    ecrire_transactions("data/donnees.txt", transactions, nb_transactions);
-
-    int choix;
-
-    while (1) {
-        printf("\n\n=== MENU PRINCIPAL ===\n\n");
-        printf("1. Afficher les statistiques\n");
-        printf("2. Extraire les transactions entre deux dates\n");
-        printf("3. Filtrer les transactions \n");
-        printf("4. Nettoyer les données de test \n");
-        printf("0. Quitter\n");
-        printf("Votre choix : ");
-        scanf("%d", &choix);
-
-        switch (choix) {
-            case 1:
-                afficher_stats("data/donnees.txt");
-                break;
-
-            case 2: {
-                struct tm start_tm = {0}, end_tm = {0};
-                int jour, mois, annee;
-
-                printf("\n--- Période de début ---\n");
-                printf("Jour : "); scanf("%d", &jour);
-                printf("Mois : "); scanf("%d", &mois);
-                printf("Année : "); scanf("%d", &annee);
-                start_tm.tm_mday = jour;
-                start_tm.tm_mon = mois - 1;
-                start_tm.tm_year = annee - 1900;
-
-                printf("\n--- Période de fin ---\n");
-                printf("Jour : "); scanf("%d", &jour);
-                printf("Mois : "); scanf("%d", &mois);
-                printf("Année : "); scanf("%d", &annee);
-                end_tm.tm_mday = jour;
-                end_tm.tm_mon = mois - 1;
-                end_tm.tm_year = annee - 1900;
-
-                time_t start_time = mktime(&start_tm);
-                time_t end_time = mktime(&end_tm);
-
-                extraire_transactions_par_periode("data/donnees.txt", "data/transactions_t1-t2.txt", start_time, end_time);
-                printf("Extraction terminée. Voir : data/transactions_t1-t2.txt\n");
-                break;
-            }
-	    
-	    case 3:{
-	    	unsigned int minU , minI;
-	    	printf("\nEntrer le nombre min d'users: ");
-	    	scanf("%d",&minU);
-	    	printf("Entrer le nombre min d'articles: ");
-	    	scanf("%d",&minI);
-	    	
-	    	int result = filtrer_transactions("data/donnees.txt", "data/transactions_filtrees.txt", minU, minI);
-
-		    if (result == -1) {
-			printf("Erreur lors du filtrage des transactions.\n");
-			return 1;
-		    } else if (result == 0) {
-			printf("Aucune transaction n'a passé les filtres.\n");
-		    } else {
-			printf("Filtrage terminé avec succès ! ");
-		    }
-		 break;
-	    }
-	    
-	    case 4: {
-	    	int nb_trans = nettoyer_fichier_test("data/essai/Train.txt", "data/essai/Test.txt", "data/essai/Clean.txt");
-	    	
-	    	if (nb_trans > 0 )
-		    	printf("Nous avons %d transactions extraites", nb_trans);
- 		else
- 			printf("Pas de transaction extraite");
- 		break;	    	
-	    }
-
-            case 0:
-                printf("Fin du programme. Merci !\n");
-                return 0;
-
-            default:
-                printf("Choix invalide. Veuillez réessayer.\n");
-        }
-
-        printf("\nAppuyez sur Entrée pour continuer...");
-        getchar(); // vide le buffer après scanf
-        getchar(); // attend la touche entrée
-    }
-
-    return 0;
+// Fonction pour afficher le menu principal
+void afficher_menu_principal() {
+    printf("\n");
+    printf("╔══════════════════════════════════════════════════════════════╗\n");
+    printf("║                   SYSTÈME DE RECOMMANDATION                  ║\n");
+    printf("║                         Version 1.0                          ║\n");   
+    printf("║                MASSE MASSE PAUL - BASTHYLLE                  ║\n");
+    printf("╠══════════════════════════════════════════════════════════════╣\n");
+    printf("║                                                              ║\n");
+    printf("║  1. Traitement et gestion des données                        ║\n");
+    printf("║  2. Extraction de données vers Train                         ║\n");    
+    printf("║  3. Système de recommandation KNN                            ║\n");
+    printf("║  4. À propos du système                                      ║\n");
+    printf("║  0. Quitter le programme                                     ║\n");
+    printf("║                                                              ║\n");
+    printf("╚══════════════════════════════════════════════════════════════╝\n");
+    printf("\nVotre choix : ");
 }
 
+int main() {
+    int choix;
+    
+    while (1) {
+        afficher_menu_principal();
+        scanf("%d", &choix);
+        
+        switch (choix) {
+            case 1:
+                printf("\n--- Traitement et gestion des données ---\n");
+                Menu_Traitement();
+                break;
+                
+            case 2:
+                printf("\n--- Debut de l'extraction .... ---\n");
+                extraction(); 
+                break;
+            
+            case 3:
+                printf("\n--- Système de recommandation KNN ---\n");
+                Menu_KNN("data/KNN_TRAIN/Train.txt" , "data/KNN_TRAIN/Test.txt");
+                break;
+                
+            case 4:
+                printf("\n╔══════════════════════════════════════════════════════════════╗\n");
+                printf("║                      À PROPOS DU SYSTÈME                     ║\n");
+                printf("╠══════════════════════════════════════════════════════════════╣\n");
+                printf("║                                                              ║\n");
+                printf("║  Système de Recommandation - Version 1.0                     ║\n");
+                printf("║  Utilise l'algorithme K-Nearest Neighbors (KNN)              ║\n");
+                printf("║  pour fournir des recommandations personnalisées             ║\n");
+                printf("║                                                              ║\n");
+                printf("║  Fonctionnalités :                                           ║\n");
+                printf("║  • Traitement et gestion des données                         ║\n");
+                printf("║  • Algorithme KNN pour les recommandations                   ║\n");
+                printf("║  • Interface utilisateur intuitive                           ║\n");
+                printf("║                                                              ║\n");
+                printf("╚══════════════════════════════════════════════════════════════╝\n");
+                printf("\nAppuyez sur Entrée pour continuer...");
+                getchar(); // Pour consommer le '\n' restant
+                getchar(); // Pour attendre l'appui sur Entrée
+                break;
+                
+            case 0:
+                printf("\n╔══════════════════════════════════════════════════════════════╗\n");
+                printf("║                      MERCI D'AVOIR UTILISÉ                   ║\n");
+                printf("║                   LE SYSTÈME DE RECOMMANDATION               ║\n");
+                printf("║                                                              ║\n");
+                printf("║                         Au revoir !                          ║\n");
+                printf("╚══════════════════════════════════════════════════════════════╝\n");
+                exit(0);
+                
+            default:
+                printf("\n⚠️  Choix invalide ! Veuillez sélectionner une option valide (0-3).\n");
+                printf("Appuyez sur Entrée pour continuer...");
+                getchar(); // Pour consommer le '\n' restant
+                getchar(); // Pour attendre l'appui sur Entrée
+        }
+    }
+    
+    return 0;
+}

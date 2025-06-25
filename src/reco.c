@@ -38,6 +38,9 @@ void ecrire_users(const char* filename, User users[], int nb_users) {
     fclose(f);
 }
 
+
+//#########################################################
+
 //------------ Articles -----------------------------
 
 // Lecture des articles
@@ -75,6 +78,9 @@ void ecrire_articles(const char* filename, Article articles[], int nb_articles) 
     fclose(f);
 }
 
+
+//#########################################################
+
 //------------ Categories -----------------------------
 
 // Lecture des catégories
@@ -111,6 +117,9 @@ void ecrire_categories(const char* filename, Categorie categories[], int nb_cate
     }
     fclose(f);
 }
+
+
+//#########################################################
 
 //------------ Transactions ----------------------------- 
 
@@ -209,6 +218,40 @@ int compter_transactions(const char* filename, Transaction transactions[], int m
     return count;
 }
 
+// Fonction pour recharger toutes les données depuis donnees.txt
+
+void charger_donnees(User users[], int* nb_users, Article articles[], int* nb_articles, 
+                     Categorie categories[], int* nb_categories, Transaction transactions[], int* nb_transactions) {
+    
+    
+    *nb_users = 0;
+    *nb_articles = 0;
+    *nb_categories = 0;
+    *nb_transactions = 0;
+    
+    // Réinitialiser les tableaux
+    memset(users, 0, sizeof(User) * MAX_USERS);
+    memset(articles, 0, sizeof(Article) * MAX_ARTICLES);
+    memset(categories, 0, sizeof(Categorie) * MAX_CATEGORIES);
+    
+    FILE* file = fopen("data/donnees.txt", "r");
+    if (file != NULL) {
+        Transaction t;
+        while (fscanf(file, "%d %d %d %f %lf", &t.id_user, &t.id_article, &t.id_cat, &t.evaluation, &t.timestamp) == 5) {
+            ajouter_transaction(users, nb_users, articles, nb_articles,
+                                categories, nb_categories, transactions, nb_transactions, t);
+        }
+        fclose(file);
+        printf("Données chargées/rechargées depuis donnees.txt\n");
+        printf("Users: %d, Articles: %d, Categories: %d, Transactions: %d\n", 
+               *nb_users, *nb_articles, *nb_categories, *nb_transactions);
+    } else {
+        printf("Erreur : impossible d'ouvrir le fichier donnees.txt\n");
+    }
+}
+
+//#########################################################
+
 //------------ Fonctions d'aide -----------------------------
 
 // Trouver un utilisateur par ID
@@ -240,6 +283,8 @@ Categorie* trouver_categorie(Categorie categories[], int nb_categories, unsigned
     }
     return NULL;
 }
+
+//#########################################################
 
 //------------ Fonctions de devoir -----------------------------
 
@@ -320,6 +365,7 @@ void afficher_stats(const char* fichier) {
     printf("Catégorie la moins fréquente : %d (%d articles)\n", min_cat_id, min_count);
 }
 
+//#############
 //----------------------------------------------
 
 //Extraction des données par période
@@ -354,13 +400,138 @@ void extraire_transactions_par_periode(const char* fichier_entree, const char* f
     fclose(file_sortie);
 }
 
-//--------------------------------------
+
+//#############
 
 //filtrage par frequence min d'apparition
 
 //ici il suffit juste de copier ceux qui sont sup ou egal au min
 
-int filtrer_transactions(const char* fichier_entree, const char* fichier_sortie, int minU, int minI) {
+//Filtrage par frequence min d'apparition
+
+//Filtrer par utilisateurs uniquement
+
+int filtrer_transactions_par_min_U(const char* fichier_entree, const char* fichier_sortie, int minU){
+
+    FILE *f_users = fopen("data/Users.txt", "r");
+    FILE *f_in = fopen(fichier_entree, "r");
+    FILE *f_out = fopen(fichier_sortie, "w");
+
+    if (!f_users || !f_in || !f_out) {
+        printf("Erreur d'ouverture de fichier.\n");
+        if (f_users) fclose(f_users);
+        if (f_in) fclose(f_in);
+        if (f_out) fclose(f_out);
+        return -1; 
+    }
+
+    // Lecture des utilisateurs dans une liste
+    User *users = malloc(sizeof(User) * 100);
+    int nb_users = 0;
+    int capacity_users = 100;
+    
+    while (lire_User(f_users, &users[nb_users]) == 2) {
+        nb_users++;
+        if (nb_users >= capacity_users) {
+            capacity_users += 100;
+            users = realloc(users, sizeof(User) * capacity_users);
+        }
+    }
+    fclose(f_users);
+
+    // Filtrage des transactions
+    Transaction t;
+    int nb_transactions_filtrees = 0;
+
+    while (fscanf(f_in, "%d %d %d %f %lf", &t.id_user, &t.id_article, &t.id_cat, &t.evaluation, &t.timestamp) == 5) {
+        int user_freq_ok = 0;
+        
+        // Vérifier la fréquence de l'utilisateur
+        for (int i = 0; i < nb_users; i++) {
+            if (users[i].id_user == (unsigned int)t.id_user && users[i].nb_fois >= minU) {
+                user_freq_ok = 1;
+                break;
+            }
+        }
+
+        if (user_freq_ok) {
+            fprintf(f_out, "%d %d %d %.2f %.0lf\n", t.id_user, t.id_article, t.id_cat, t.evaluation, t.timestamp);
+            nb_transactions_filtrees++;
+        }
+    }
+
+    free(users);
+    fclose(f_in);
+    fclose(f_out);
+
+    return nb_transactions_filtrees; 
+}
+
+//--------------------------------------------------
+//Filtrer par articles uniquement
+
+int filtrer_transactions_par_min_I(const char* fichier_entree, const char* fichier_sortie, int minI){
+   
+    FILE *f_articles = fopen("data/Articles.txt", "r");
+    FILE *f_in = fopen(fichier_entree, "r");
+    FILE *f_out = fopen(fichier_sortie, "w");
+
+    if (!f_articles || !f_in || !f_out) {
+        printf("Erreur d'ouverture de fichier.\n");
+        if (f_articles) fclose(f_articles);
+        if (f_in) fclose(f_in);
+        if (f_out) fclose(f_out);
+        return -1;
+    }
+
+    // Lecture des articles dans une liste
+    Article *articles = malloc(sizeof(Article) * 100);
+    int nb_articles = 0;
+    int capacity_articles = 100;
+    
+    while (lire_Article(f_articles, &articles[nb_articles]) == 3) {
+        nb_articles++;
+        if (nb_articles >= capacity_articles) {
+            capacity_articles += 100;
+            articles = realloc(articles, sizeof(Article) * capacity_articles);
+        }
+    }
+    fclose(f_articles);
+
+    // Filtrage des transactions
+    Transaction t;
+    int nb_transactions_filtrees = 0;
+
+    while (fscanf(f_in, "%d %d %d %f %lf", &t.id_user, &t.id_article, &t.id_cat, &t.evaluation, &t.timestamp) == 5) {
+        int article_freq_ok = 0;
+        
+        // Vérifier la fréquence de l'article
+        for (int i = 0; i < nb_articles; i++) {
+            if (articles[i].id_article == (unsigned int)t.id_article && articles[i].nb_fois >= minI) {
+                article_freq_ok = 1;
+                break;
+            }
+        }
+
+        if (article_freq_ok) {
+            fprintf(f_out, "%d %d %d %.2f %.0lf\n", t.id_user, t.id_article, t.id_cat, t.evaluation, t.timestamp);
+            nb_transactions_filtrees++;
+        }
+    }
+
+    free(articles);
+    fclose(f_in);
+    fclose(f_out);
+
+    return nb_transactions_filtrees; 
+}
+
+
+//--------------------------------------------------
+
+//Filtrer par utilisateurs ET articles
+
+int filtrer_transactions_par_min_U_et_I(const char* fichier_entree, const char* fichier_sortie, int minU, int minI){
    
     FILE *f_users = fopen("data/Users.txt", "r");
     FILE *f_articles = fopen("data/Articles.txt", "r");
@@ -369,67 +540,80 @@ int filtrer_transactions(const char* fichier_entree, const char* fichier_sortie,
 
     if (!f_users || !f_articles || !f_in || !f_out) {
         printf("Erreur d'ouverture de fichier.\n");
-        return -1; // code d'erreur
+        if (f_users) fclose(f_users);
+        if (f_articles) fclose(f_articles);
+        if (f_in) fclose(f_in);
+        if (f_out) fclose(f_out);
+        return -1;
     }
 
     // Lecture des utilisateurs dans une liste
-    User *users = malloc(sizeof(User) * 100); // Allocation dynamique (taille initiale 100)
+    User *users = malloc(sizeof(User) * 100);
     int nb_users = 0;
+    int capacity_users = 100;
+    
     while (lire_User(f_users, &users[nb_users]) == 2) {
         nb_users++;
-        users = realloc(users, sizeof(User) * (nb_users + 100)); // Augmentation de la taille si nécessaire
+        if (nb_users >= capacity_users) {
+            capacity_users += 100;
+            users = realloc(users, sizeof(User) * capacity_users);
+        }
     }
     fclose(f_users);
 
     // Lecture des articles dans une liste
-    Article *articles = malloc(sizeof(Article) * 100); // Allocation dynamique (taille initiale 100)
+    Article *articles = malloc(sizeof(Article) * 100);
     int nb_articles = 0;
+    int capacity_articles = 100;
+    
     while (lire_Article(f_articles, &articles[nb_articles]) == 3) {
         nb_articles++;
-        articles = realloc(articles, sizeof(Article) * (nb_articles + 100)); // Augmentation de la taille si nécessaire
+        if (nb_articles >= capacity_articles) {
+            capacity_articles += 100;
+            articles = realloc(articles, sizeof(Article) * capacity_articles);
+        }
     }
     fclose(f_articles);
 
     // Filtrage des transactions
     Transaction t;
-    int ok = 0; // Variable pour savoir si au moins une transaction a été filtrée
+    int nb_transactions_filtrees = 0;
 
     while (fscanf(f_in, "%d %d %d %f %lf", &t.id_user, &t.id_article, &t.id_cat, &t.evaluation, &t.timestamp) == 5) {
         int user_freq_ok = 0, article_freq_ok = 0;
         
-        // Vérifier la fréquence de l'utilisateur dans la liste des utilisateurs
+        // Vérifier la fréquence de l'utilisateur
         for (int i = 0; i < nb_users; i++) {
-            if (users[i].id_user == t.id_user && users[i].nb_fois >= minU) {
+            if (users[i].id_user == (unsigned int)t.id_user && users[i].nb_fois >= minU) {
                 user_freq_ok = 1;
                 break;
             }
         }
 
-        // Vérifier la fréquence de l'article dans la liste des articles
+        // Vérifier la fréquence de l'article
         for (int i = 0; i < nb_articles; i++) {
-            if (articles[i].id_article == t.id_article && articles[i].nb_fois >= minI) {
+            if (articles[i].id_article == (unsigned int)t.id_article && articles[i].nb_fois >= minI) {
                 article_freq_ok = 1;
                 break;
             }
         }
 
-        if (!user_freq_ok || !article_freq_ok) {
-            ok = 1; 
-            continue;
+        if (user_freq_ok && article_freq_ok) {
+            fprintf(f_out, "%d %d %d %.2f %.0lf\n", t.id_user, t.id_article, t.id_cat, t.evaluation, t.timestamp);
+            nb_transactions_filtrees++;
         }
-	fprintf(f_out, "%d %d %d %.2f %.0lf\n", t.id_user, t.id_article, t.id_cat, t.evaluation, t.timestamp);
-	//Ecrire_Transaction(f_out, t);
     }
 
     free(users);
     free(articles);
-
     fclose(f_in);
     fclose(f_out);
 
-    return ok; 
+    return nb_transactions_filtrees; 
 }
 
+//--------------------------------------------------
+//#############
 //-------------------------------------------------
 
 //Nettoyer les données
@@ -440,6 +624,7 @@ int nettoyer_fichier_test(const char* fichier_train, const char* fichier_test, c
     FILE *f_train = fopen(fichier_train, "r");
     FILE *f_test = fopen(fichier_test, "r");
     FILE *f_clean = fopen(fichier_clean, "w");
+    
 
     if (!f_train || !f_test || !f_clean) {
         printf("Erreur d'ouverture des fichiers\n");
@@ -447,6 +632,7 @@ int nettoyer_fichier_test(const char* fichier_train, const char* fichier_test, c
     }
 
     // Allocation dynamique ligne par ligne pour les transactions du train
+    
     int nb_train = 0;
     Transaction *train_data = NULL;
     Transaction temp;
@@ -504,3 +690,35 @@ int nettoyer_fichier_test(const char* fichier_train, const char* fichier_test, c
     return nb_clean;
 }
 
+//--------------------------------------------------
+//#############
+//------------- Autres Utilitaires -----------------
+
+void extraire_vers_fichier(const char *fichier_entree, const char *fichier_sortie, int ligne_debut, int ligne_fin) {
+   
+    FILE *fin = fopen(fichier_entree, "r");
+    FILE *fout = fopen(fichier_sortie, "w");
+
+    if (!fin || !fout) {
+        perror("Erreur lors de l'ouverture des fichiers");
+        exit(EXIT_FAILURE);
+    }
+
+    Transaction t;
+    int ligne = 0;
+
+    while (fscanf(fin, "%d %d %d %f %lf", &t.id_user, &t.id_article, &t.id_cat, &t.evaluation, &t.timestamp) == 5) {
+        ligne++;
+        if (ligne >= ligne_debut && ligne <= ligne_fin) {
+            fprintf(fout, "%d %d %.1f\n", t.id_user, t.id_article, t.evaluation);
+        }
+        if (ligne > ligne_fin) break;
+    }
+
+    fclose(fin);
+    fclose(fout);
+    printf("Extraction terminée : lignes %d à %d enregistrées dans Train.txt\n", ligne_debut, ligne_fin);
+}
+
+//Paul-Basthylle MASSE MASSE
+//################################################

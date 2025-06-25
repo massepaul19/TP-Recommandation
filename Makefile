@@ -2,11 +2,13 @@
 
 CISSE = gcc
 EXEC = cisse.out
-DOSSIER_OBJET = ./obj/main.o ./obj/reco.o
-ALERT = -Wall
+DOSSIER_OBJET = ./obj/main.o ./obj/reco.o ./obj/reco_KNN.o ./obj/menu.o
+ALERT = -Wall -Werror -Wextra
 
 REP_stan = -Wl,-rpath,\$$ORIGIN/../lib
 
+
+###########################################################
 
 # -------------------------------------------
 # Compilation principale
@@ -15,8 +17,9 @@ REP_stan = -Wl,-rpath,\$$ORIGIN/../lib
 all: $(EXEC)
 
 $(EXEC): $(DOSSIER_OBJET)
-	$(CISSE) $(DOSSIER_OBJET) -o ./bin/$(EXEC) $(ALERT)
+	$(CISSE) $(DOSSIER_OBJET) -o ./bin/$(EXEC) $(ALERT) -lm
 
+###########################################################
 # -------------------------------------------
 # Compilation des fichiers objets
 # -------------------------------------------
@@ -28,6 +31,21 @@ $(EXEC): $(DOSSIER_OBJET)
 ./obj/reco.o: src/reco.c include/reco.h
 	mkdir -p obj
 	$(CISSE) -c src/reco.c -o ./obj/reco.o -Iinclude $(ALERT)
+
+#######################
+# Compilation des menus
+./obj/menu.o: src/menu.c include/menu.h
+	mkdir -p obj
+	$(CISSE) -c src/menu.c -o ./obj/menu.o -Iinclude $(ALERT)
+
+#######################
+# Compilation des fichiers d'algorithmes
+
+./obj/reco_KNN.o: src/reco_KNN.c include/reco_KNN.h
+	mkdir -p obj
+	$(CISSE) -c src/reco_KNN.c -o ./obj/reco_KNN.o -Iinclude $(ALERT)
+
+###########################################################
 
 # -------------------------------------------
 # === Bibliothèque statique ===
@@ -41,6 +59,8 @@ bin/runstatic: test/main.c lib/libreco.a
 	mkdir -p bin
 	$(CISSE) test/main.c -Llib -lreco -o bin/runstatic -Iinclude $(REP_stan)
 
+###########################################################
+
 # -------------------------------------------
 # === Bibliothèque dynamique ===
 # -------------------------------------------
@@ -52,6 +72,8 @@ lib/libreco.so: ./obj/reco.o
 bin/rundyn: test/main.c lib/libreco.so
 	mkdir -p bin
 	$(CISSE) test/main.c -Llib -lreco -o bin/rundyn -Iinclude $(REP_stan)
+
+###########################################################
 
 # -------------------------------------------
 # === Méthodes d'exécution que je propose ===
@@ -66,12 +88,42 @@ runstatic: bin/runstatic
 rundyn: bin/rundyn
 	LD_LIBRARY_PATH=./lib ./bin/rundyn
 
+###########################################################
+
 # -------------------------------------------
 # Nettoyage
 # -------------------------------------------
 
 clean:
 	rm -f ./obj/*.o ./bin/$(EXEC) bin/runstatic bin/rundyn lib/*.a lib/*.so
+
+
+###########################################################
+
+# -------------------------------------------
+# ===== Aide ==========
+# -------------------------------------------
+
+help:
+	@echo '=== MENU D''AIDE POUR LA COMPILATION  Paulo Masse ======'
+	@echo 'make               - compiler tout le programme'
+	@echo 'make run           - Executer le programme'
+	@echo 'make runstatic     - Executer avec Biblio statique'
+	@echo 'make rundyn        - Executer avec Biblio dynamique'
+	@echo 'make clean         - Nettoyage des fichiers'
+	@echo 'make efface        - Nettoyage du terminal'
+	
+
+###########################################################
+
+# -------------------------------------------
+# ===== Clean terminal ==========
+# -------------------------------------------
+
+efface:
+	clear
+
+###########################################################
 
 .PHONY: clean all run runstatic rundyn
 
