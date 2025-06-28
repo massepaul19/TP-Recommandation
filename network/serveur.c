@@ -224,8 +224,7 @@ void Menu_Traitement() {
         getchar();
     }
 }
-
-
+*/
 //ce menu me permet d'extraire les données vers Train
 
 void extraction() {

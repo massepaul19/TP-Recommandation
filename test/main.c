@@ -3,7 +3,7 @@
 #include <string.h>
 #include "menu.h"
 
-RecommandeurKNN* recommandeur_global = NULL;
+//RecommandeurKNN* recommandeur_global = NULL;
 
 // Prototypes des fonctions de menu
 

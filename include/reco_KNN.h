@@ -41,6 +41,9 @@ typedef struct {
     double similarite;
 } Voisin;
 
+
+extern RecommandeurKNN* recommandeur_global;
+
 // ========== FONCTIONS PRINCIPALES (TÂCHES DU DEVOIR) ==========
 
 /**
@@ -99,6 +102,8 @@ int construire_matrice_evaluations(RecommandeurKNN* rec);
 void calculer_moyennes_utilisateurs(RecommandeurKNN* rec);
 double correlation_pearson_entre_users(RecommandeurKNN* rec, int index_user1, int index_user2);
 void calculer_matrice_similarite_complete(RecommandeurKNN* rec);
+
+int verifier_donnees_recommandeur(RecommandeurKNN* rec);
 
 // ========== ALGORITHME KNN ==========
 

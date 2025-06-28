@@ -11,7 +11,7 @@ REP_stan = -Wl,-rpath,\$$ORIGIN/../lib
 ###########################################################
 
 # -------------------------------------------
-# Compilation principale
+# Compilation principale 
 # -------------------------------------------
 
 all: $(EXEC)
@@ -44,6 +44,23 @@ $(EXEC): $(DOSSIER_OBJET)
 ./obj/reco_KNN.o: src/reco_KNN.c include/reco_KNN.h
 	mkdir -p obj
 	$(CISSE) -c src/reco_KNN.c -o ./obj/reco_KNN.o -Iinclude $(ALERT)
+
+
+#------------------------------------------------------------------------------
+#######################
+# Compilation des fichiers serveur et client
+
+#serveur
+./obj/serveur.o: network/serveur.c
+	mkdir -p obj
+	$(CISSE) -c network/serveur.c -o ./obj/serveur.o -Iinclude $(ALERT)
+
+#client
+./obj/client.o: network/client.c
+	mkdir -p obj
+	$(CISSE) -c network/client.c -o ./obj/client.o -Iinclude $(ALERT)
+
+#------------------------------------------------------------------------------
 
 ###########################################################
 
@@ -90,6 +107,19 @@ rundyn: bin/rundyn
 
 ###########################################################
 
+
+# ----------------------------------------------------
+# === Méthodes pour lancer le serveur et le client ===
+# ----------------------------------------------------
+
+#runstatic: bin/runstatic
+#	./bin/runstatic
+
+#rundyn: bin/rundyn
+#	LD_LIBRARY_PATH=./lib ./bin/rundyn
+
+###########################################################
+
 # -------------------------------------------
 # Nettoyage
 # -------------------------------------------
@@ -110,6 +140,8 @@ help:
 	@echo 'make run           - Executer le programme'
 	@echo 'make runstatic     - Executer avec Biblio statique'
 	@echo 'make rundyn        - Executer avec Biblio dynamique'
+	@echo 'make serveur       - Demarrer avec le serveur'
+	@echo 'make client        - Demarrer côté client'
 	@echo 'make clean         - Nettoyage des fichiers'
 	@echo 'make efface        - Nettoyage du terminal'
 	
