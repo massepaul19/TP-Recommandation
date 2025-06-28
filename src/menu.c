@@ -6,7 +6,6 @@
 #include "menu.h"
 
 // Déclaration de la variable globale
-RecommandeurKNN* recommandeur_global = NULL;
 
 void Menu_Traitement() {
     User users[MAX_USERS] = {0};

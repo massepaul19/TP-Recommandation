@@ -5,6 +5,7 @@
 
 #include "reco_KNN.h"
 
+RecommandeurKNN* recommandeur_global = NULL;
 //RecommandeurKNN* recommandeur_global = NULL;
 
 //----------------Initialisation des données depuis de le fichier ------------
