@@ -105,38 +105,49 @@ rundyn: bin/rundyn
 # ----------------------------------------------------
 # ========== Démarrage Côté serveur ==================
 # ----------------------------------------------------
-
-bin/serveur: network/serveur.c lib/librecommantion.so
-	mkdir -p bin
-	$(CISSE) network/serveur.c -o bin/serveur -Iinclude -Llib -lrecommantion $(ALERT) $(REP_stan)
+bin/serveur: network/serveur.c network/src/fonctions_serveur.c lib/librecommantion.so
+	@mkdir -p bin
+	$(CC) network/serveur.c network/src/fonctions_serveur.c -o bin/serveur -Iinclude -Inetwork/include -Llib -lrecommantion $(ALERT) $(REP_stan)
 
 serveur: bin/serveur
+	@echo "Démarrage du serveur..."
 	LD_LIBRARY_PATH=./lib ./bin/serveur
-#-------------------------------------------------------------------------------
+
+stop-serveur:
+	@echo "Arrêt du serveur..."
+	@pkill -f "./bin/serveur" || echo "Aucun serveur à arrêter"
 
 ########################
-
 # ----------------------------------------------------
 # ==============  Démarrage Côté client ==============
 # ----------------------------------------------------
 
-serveurdyn: bin/serveur
-	LD_LIBRARY_PATH=./lib ./bin/serveur
-
+bin/client: network/client.c network/src/fonctions_client.c
+	@mkdir -p bin
+	$(CC) network/client.c network/src/fonctions_client.c -o bin/client -Iinclude -Inetwork/include $(ALERT)
 
 client: bin/client
+	@echo "Démarrage du client..."
 	./bin/client
 
+
 ###########################################################
+#-------------------------------------------------------------------------------
+#------------------- Voir les adresses disponibles -----------------------------
+#-------------------------------------------------------------------------------
 
+adresse:
+	@echo "Les adresses disponibles..."
+	hostname -I
 
+###########################################################
 # -------------------------------------------
 # Nettoyage
 # -------------------------------------------
-
 clean:
-	rm -f ./obj/*.o ./bin/$(EXEC) bin/runstatic bin/rundyn lib/*.a lib/*.so
-
+	@echo "Nettoyage des fichiers générés..."
+	rm -f ./obj/*.o ./bin/$(EXEC) bin/runstatic bin/rundyn bin/serveur bin/client lib/*.a lib/*.so
+	@echo "Nettoyage terminé"
 
 ###########################################################
 
@@ -150,8 +161,10 @@ help:
 	@echo 'make run           - Executer le programme'
 	@echo 'make runstatic     - Executer avec Biblio statique'
 	@echo 'make rundyn        - Executer avec Biblio dynamique'
-	@echo 'make serveur    - Demarrer avec le serveur'
+	@echo 'make serveur       - Demarrer avec le serveur'
+	@echo 'make stop-serveur  - Arrêter le serveur'
 	@echo 'make client        - Demarrer côté client'
+	@echo 'make adresse       - Voir les adresses disponibles'
 	@echo 'make clean         - Nettoyage des fichiers'
 	@echo 'make efface        - Nettoyage du terminal'
 	

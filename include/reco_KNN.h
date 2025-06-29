@@ -41,7 +41,6 @@ typedef struct {
     double similarite;
 } Voisin;
 
-
 extern RecommandeurKNN* recommandeur_global;
 
 // ========== FONCTIONS PRINCIPALES (TÂCHES DU DEVOIR) ==========

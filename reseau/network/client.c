@@ -14,8 +14,8 @@
 int main(int argc, char* argv[]) {
 
     client_connection_t client;
-    char server_ip[16] = IP_SERVEUR_LOCAL;  // IP par défaut (localhost)
-    //char server_ip[16] = IP_SERVEUR;  	    // ip avec l'@ ip par mon point d'acces
+    //char server_ip[16] = IP_SERVEUR_LOCAL;  // IP par défaut (localhost)
+    char server_ip[16] = IP_SERVEUR;  	    // ip avec l'@ ip par mon point d'acces
     int server_port = PORT;                 // Port par défaut
 
     printf("========================================\n");
