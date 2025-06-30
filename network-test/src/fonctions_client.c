@@ -46,6 +46,67 @@ int envoyer_commande(client_connection_t* client, const char* commande) {
     return 0;
 }
 
+#include <time.h>  // pour clock_gettime
+
+int recevoir_reponse(client_connection_t* client, char* buffer, int buffer_size) {
+    memset(buffer, 0, buffer_size);
+    int total_received = 0;
+    int bytes_received;
+
+    const int timeout_ms = 5000;  // Timeout total 5000 ms = 5 sec
+    const int wait_per_try_ms = 50; // pause 50ms entre essais
+
+    struct timespec start_time, current_time;
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
+
+    while (total_received < buffer_size - 1) {
+        bytes_received = recv(client->socket, buffer + total_received,
+                              buffer_size - total_received - 1, MSG_DONTWAIT);
+        if (bytes_received > 0) {
+            total_received += bytes_received;
+            buffer[total_received] = '\0';
+
+            // Reset timer à chaque nouvelle donnée reçue (optionnel)
+            clock_gettime(CLOCK_MONOTONIC, &start_time);
+
+            // Vérifier si la réponse est complète selon tes mots clés
+            if (strstr(buffer, "OK:") || strstr(buffer, "ERREUR:") ||
+                strstr(buffer, "PREDICTION:") || strstr(buffer, "EVALUATION:") ||
+                strstr(buffer, "SAUVEGARDE:") || strstr(buffer, "STATISTIQUES:") ||
+                strstr(buffer, "Au revoir")) {
+                break; // réponse complète reçue
+            }
+
+        } else if (bytes_received == 0) {
+            printf("Connexion fermée par le serveur\n");
+            return -1;
+        } else {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // Pas de données disponibles => pause puis vérifier timeout
+                usleep(wait_per_try_ms * 1000);
+
+                clock_gettime(CLOCK_MONOTONIC, &current_time);
+                long elapsed_ms = (current_time.tv_sec - start_time.tv_sec) * 1000
+                                  + (current_time.tv_nsec - start_time.tv_nsec) / 1000000;
+
+                if (elapsed_ms >= timeout_ms) {
+                    printf("Timeout: Aucune réponse reçue du serveur après %d ms\n", timeout_ms);
+                    return -1;
+                }
+
+                continue;
+            } else {
+                perror("Erreur réception");
+                return -1;
+            }
+        }
+    }
+
+    return total_received;
+}
+
+
+/*
 int recevoir_reponse(client_connection_t* client, char* buffer, int buffer_size) {
 
     memset(buffer, 0, buffer_size);
@@ -92,6 +153,7 @@ int recevoir_reponse(client_connection_t* client, char* buffer, int buffer_size)
 
     return total_received;
 }
+*/
 
 void fermer_connexion(client_connection_t* client) {
     if (client->socket >= 0) {
@@ -131,6 +193,7 @@ void afficher_menu() {
 }
 
 void menu_numerique(client_connection_t* client) {
+
     char buffer[BUFFER_SIZE];
     int choix = -1;
 

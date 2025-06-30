@@ -283,8 +283,6 @@ void Menu_KNN(const char* train_file, const char* test_file) {
         printf("4. Évaluer les performances\n");
         printf("5. Sauvegarder les résultats\n");
         printf("6. Afficher les statistiques\n");
-        printf("7. Changer les fichiers d'entrée\n");
-        printf("0. Retour au menu principal\n");
         printf("=========================================\n");
         printf("Votre choix : ");
       
@@ -505,37 +503,6 @@ void Menu_KNN(const char* train_file, const char* test_file) {
                 break;
             }
 
-            case 7: {
-                printf("\n=== MODIFICATION DES FICHIERS ===\n");
-                char new_train[256], new_test[256];
-                
-                printf("Fichier train actuel : %s\n", fichier_train);
-                printf("Nouveau fichier train (ou Entrée pour garder l'actuel) : ");
-                if (scanf("%255s", new_train) == 1 && strlen(new_train) > 0) {
-                    strcpy(fichier_train, new_train);
-                    printf("✓ Fichier train mis à jour : %s\n", fichier_train);
-                    
-                    // Invalider la matrice car le fichier d'entrainement a changé
-                    if (matrice_similarite) {
-                        printf("⚠ La matrice de Pearson devra être recalculée.\n");
-                    }
-                }
-                
-                printf("Fichier test actuel : %s\n", fichier_test);
-                printf("Nouveau fichier test (ou Entrée pour garder l'actuel) : ");
-                if (scanf("%255s", new_test) == 1 && strlen(new_test) > 0) {
-                    strcpy(fichier_test, new_test);
-                    printf("✓ Fichier test mis à jour : %s\n", fichier_test);
-                    
-                    // Invalider les prédictions car le fichier de test a changé
-                    if (nb_predictions > 0) {
-                        printf("⚠ Les prédictions devront être recalculées.\n");
-                        nb_predictions = 0;
-                    }
-                }
-                break;
-            }
-
             case 0: {
                 printf("\n=== NETTOYAGE ET SORTIE ===\n");
                 
@@ -566,3 +533,110 @@ void Menu_KNN(const char* train_file, const char* test_file) {
     }
 }
 
+
+void Menu_GRAPHE() {
+    int choix;
+    int nb_train = 0;
+    Transaction* train_data = NULL;
+    GrapheBipartite graphe = {0};
+    ResultatPageRank *pagerank = NULL;
+
+    do {
+        printf("\n===== MENU RECOMMANDATION - GRAPHE + PAGERANK =====\n");    
+        printf("=====================================================\n");
+        printf("1. Lire les données d'entraînement (Train.txt)\n");
+        printf("2. Construire le graphe bipartite\n");
+        printf("3. Appliquer PageRank\n");
+        printf("4. Sauvegarder les résultats PageRank\n");
+        printf("5. Afficher exemple de recommandations\n");
+        printf("0. Nettoyer la mémoire et quitter\n");    
+        printf("=====================================================\n");
+        printf("Votre choix : ");
+        scanf("%d", &choix);
+        getchar();  // Consomme le \n laissé dans le buffer
+
+        switch (choix) {
+            case 1:
+                if (train_data) free(train_data);
+                train_data = lire_fichier_train("Train.txt", &nb_train);
+                break;
+
+            case 2:
+                if (!train_data || nb_train == 0) {
+                    printf("Vous devez d'abord lire les données !\n");
+                } else {
+                    creer_mappings_optimise(train_data, nb_train, &graphe);
+                    construire_matrice_adjacence_optimise(train_data, nb_train, &graphe);
+                    printf("\nGraphe construit avec succès.\n");
+                }
+                break;
+
+            case 3:
+                if (!graphe.matrice_adjacence) {
+                    printf("Vous devez d'abord construire le graphe !\n");
+                } else {
+                    pagerank = pagerank_optimise(&graphe, 0.85, 1e-6, 50);
+                    printf("\nPageRank calculé avec succès.\n");
+                }
+                break;
+
+            case 4:
+                if (!pagerank) {
+                    printf("Vous devez d'abord exécuter PageRank !\n");
+                } else {
+                    sauvegarder_pagerank(&graphe, pagerank, "pagerank_results.txt");
+                }
+                break;
+                
+	    case 5:
+		    if (!pagerank || graphe.nb_users == 0) {
+			printf("Vous devez d'abord exécuter PageRank !\n");
+		    } else {
+			int id_user;
+			printf("Entrez l'identifiant de l'utilisateur à recommander : ");
+			scanf("%d", &id_user);
+			getchar(); // Pour nettoyer le buffer
+
+			// Vérifier si l'utilisateur existe
+			if (graphe.map_users[id_user] == -1) {
+			    printf("❌ L'utilisateur %d n'existe pas dans les données.\n", id_user);
+			} else {
+			    recommander_articles(id_user, &graphe, pagerank, train_data, nb_train);
+			}
+		    }
+		    break;
+
+            case 0:
+                printf("Nettoyage mémoire...\n");
+                if (graphe.matrice_adjacence) {
+                    for (int i = 0; i < graphe.taille_totale; i++) {
+                        free(graphe.matrice_adjacence[i]);
+                    }
+                    free(graphe.matrice_adjacence);
+                }
+                free(graphe.map_users);
+                free(graphe.map_articles);
+                free(graphe.reverse_map_users);
+                free(graphe.reverse_map_articles);
+                if (pagerank) {
+                    free(pagerank->pagerank_vector);
+                    free(pagerank);
+                }
+                if (train_data) {
+                    free(train_data);
+          
+
+      }
+                printf("Mémoire libérée. À bientôt !\n");
+                break;
+
+            default:
+                printf("Choix invalide. Veuillez réessayer.\n");
+                break;
+        }
+
+        printf("\nAppuyez sur Entrée pour continuer...");
+        getchar();
+
+    } while (choix != 0);
+}

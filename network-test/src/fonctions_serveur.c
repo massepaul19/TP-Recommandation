@@ -2,7 +2,10 @@
 
 // Définitions des variables globales
 
-RecommandeurKNN* recommandeur_global = NULL;
+//RecommandeurKNN* recommandeur_global = NULL;
+
+
+pthread_mutex_t mutex_recommandeur; //je créé le mutex pour le recommandeur
 
 double** matrice_similarite = NULL;
 Prediction predictions[10000];
@@ -218,6 +221,7 @@ void handle_stats(int client_sock) {
     printf("Statistiques envoyées\n");
 }
 
+/*
 void process_client(int client_sock) {
     char buffer[BUFFER_SIZE];
     printf("Nouveau client connecté\n");
@@ -259,3 +263,74 @@ void process_client(int client_sock) {
     }
     close(client_sock);
 }
+*/
+
+
+void process_client(int client_sock) {
+
+    char buffer[BUFFER_SIZE];
+    printf("Nouveau client connecté\n");
+
+    while (1) {
+        memset(buffer, 0, sizeof(buffer));
+        int received = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
+        if (received <= 0) {
+            printf("Client déconnecté ou erreur recv (code %d)\n", received);
+            break;
+        }
+
+        buffer[strcspn(buffer, "\r\n")] = 0; // Nettoyer saut de ligne
+        printf("Commande reçue: %s\n", buffer);
+
+        char cmd[64] = {0}, param1[256] = {0}, param2[256] = {0};
+        int n = sscanf(buffer, "%63s %255s %255s", cmd, param1, param2);
+
+        if (strcasecmp(cmd, "PEARSON") == 0 && n >= 2) {
+            pthread_mutex_lock(&mutex_recommandeur);
+            handle_pearson(client_sock, param1);
+            pthread_mutex_unlock(&mutex_recommandeur);
+        } 
+        else if (strcasecmp(cmd, "PREDICT") == 0 && n >= 3) {
+            pthread_mutex_lock(&mutex_recommandeur);
+            handle_predict(client_sock, atoi(param1), atoi(param2));
+            pthread_mutex_unlock(&mutex_recommandeur);
+        } 
+        else if (strcasecmp(cmd, "PREDICT_ALL") == 0 && n >= 2) {
+            pthread_mutex_lock(&mutex_recommandeur);
+            handle_predict_all(client_sock, param1);
+            pthread_mutex_unlock(&mutex_recommandeur);
+        } 
+        else if (strcasecmp(cmd, "EVALUATE") == 0) {
+            pthread_mutex_lock(&mutex_recommandeur);
+            handle_evaluate(client_sock);
+            pthread_mutex_unlock(&mutex_recommandeur);
+        } 
+        else if (strcasecmp(cmd, "SAVE") == 0) {
+            pthread_mutex_lock(&mutex_recommandeur);
+            handle_save(client_sock);
+            pthread_mutex_unlock(&mutex_recommandeur);
+        } 
+        else if (strcasecmp(cmd, "STATS") == 0) {
+            pthread_mutex_lock(&mutex_recommandeur);
+            handle_stats(client_sock);
+            pthread_mutex_unlock(&mutex_recommandeur);
+        } 
+        else if (strcasecmp(cmd, "QUIT") == 0) {
+            envoyer_reponse(client_sock, "Au revoir !\n");
+            printf("Client a quitté\n");
+            break;
+        } 
+        else {
+            envoyer_reponse(client_sock,
+                "ERREUR: Commande non reconnue\n"
+                "Commandes disponibles: PEARSON, PREDICT, PREDICT_ALL, EVALUATE, SAVE, STATS, QUIT\n");
+            printf("Commande non reconnue: %s\n", cmd);
+        }
+    }
+
+    close(client_sock);
+    printf("Connexion client fermée\n");
+}
+
+
+

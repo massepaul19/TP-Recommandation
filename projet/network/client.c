@@ -6,7 +6,7 @@
 
 #include "fonctions_client.h"
 
-#define PORT 8080			//numero de port
+#define PORT 8081			//numero de port
 
 #define IP_SERVEUR "192.168.43.71"      //ici est l'@ de mon ip sur le point d'acces
 #define IP_SERVEUR_LOCAL "127.0.0.1"    //ici je modifie mon code pour tester sur ma machine

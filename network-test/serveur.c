@@ -1,10 +1,10 @@
 #include "fonctions_serveur.h"
 
-#define PORT 8081
+#define PORT 8080
 #define MAX_PENDING 5
 
-//RecommandeurKNN* recommandeur_global = NULL;
-int server_sock = -1;
+// Variables globales
+RecommandeurKNN* recommandeur_global = NULL;
 
 void afficher_aide() {
     printf("\n=== SERVEUR DE RECOMMANDATION KNN ===\n");
@@ -23,6 +23,7 @@ void afficher_aide() {
 void nettoyer_ressources() {
     printf("\nNettoyage des ressources...\n");
 
+    pthread_mutex_lock(&mutex_recommandeur);
     if (matrice_similarite && recommandeur_global) {
         liberer_matrice_similarite(matrice_similarite, recommandeur_global->nb_users);
         matrice_similarite = NULL;
@@ -32,27 +33,41 @@ void nettoyer_ressources() {
         liberer_recommandeur(recommandeur_global);
         recommandeur_global = NULL;
     }
+    pthread_mutex_unlock(&mutex_recommandeur);
 
     printf("Ressources libérées.\n");
 }
 
 void gerer_signal(int sig) {
     printf("\nSignal %d reçu. Arrêt du serveur...\n", sig);
-
-    if (server_sock >= 0) {
-        close(server_sock);
-        printf("Socket serveur fermé\n");
-    }
-
     nettoyer_ressources();
     exit(0);
 }
 
-int main() {
+// Thread qui gère chaque client
+void* thread_gerer_client(void* arg) {
+    int client_sock = *(int*)arg;
+    free(arg); // libère la mémoire allouée dans main()
 
-    int server_sock, client_sock;
+    // Traiter les commandes du client
+    // IMPORTANT : Si process_client utilise recommandeur_global ou matrice_similarite,
+    // il doit gérer lui-même la synchronisation (mutex) ou on peut l'encapsuler ici.
+    
+    // Exemple simple : verrouillage avant appel, déverrouillage après.
+    pthread_mutex_lock(&mutex_recommandeur);
+    process_client(client_sock);
+    pthread_mutex_unlock(&mutex_recommandeur);
+
+    close(client_sock);
+    printf("Client déconnecté (socket %d)\n", client_sock);
+    return NULL;
+}
+
+int main() {
+    int server_sock;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len = sizeof(client_addr);
+    pthread_t tid;
 
     printf("=== DÉMARRAGE DU SERVEUR KNN ===\n");
 
@@ -89,11 +104,16 @@ int main() {
     afficher_aide();
 
     while (1) {
-        printf("En attente de connexion...\n");
+        int* client_sock_ptr = malloc(sizeof(int));
+        if (!client_sock_ptr) {
+            perror("malloc");
+            continue;
+        }
 
-        client_sock = accept(server_sock, (struct sockaddr*)&client_addr, &client_len);
-        if (client_sock < 0) {
+        *client_sock_ptr = accept(server_sock, (struct sockaddr*)&client_addr, &client_len);
+        if (*client_sock_ptr < 0) {
             perror("Erreur accept");
+            free(client_sock_ptr);
             continue;
         }
 
@@ -105,11 +125,17 @@ int main() {
             "=== SERVEUR KNN CONNECTÉ ===\n"
             "Commandes: PEARSON, PREDICT, PREDICT_ALL, EVALUATE, SAVE, STATS, QUIT\n"
             "Tapez une commande:\n";
-        send(client_sock, bienvenue, strlen(bienvenue), 0);
+        send(*client_sock_ptr, bienvenue, strlen(bienvenue), 0);
 
-        process_client(client_sock);
+        // Création du thread client
+        if (pthread_create(&tid, NULL, thread_gerer_client, client_sock_ptr) != 0) {
+            perror("Erreur pthread_create");
+            close(*client_sock_ptr);
+            free(client_sock_ptr);
+            continue;
+        }
 
-        printf("Connexion fermée avec %s:%d\n", client_ip, ntohs(client_addr.sin_port));
+        pthread_detach(tid);  // Pour éviter fuites mémoire liées aux threads terminés
     }
 
     close(server_sock);

@@ -1,9 +1,10 @@
 #include "fonctions_serveur.h"
 
-#define PORT 8080
+#define PORT 8081
 #define MAX_PENDING 5
 
-RecommandeurKNN* recommandeur_global = NULL;
+//RecommandeurKNN* recommandeur_global = NULL;
+int server_sock = -1;
 
 void afficher_aide() {
     printf("\n=== SERVEUR DE RECOMMANDATION KNN ===\n");
@@ -37,6 +38,12 @@ void nettoyer_ressources() {
 
 void gerer_signal(int sig) {
     printf("\nSignal %d reçu. Arrêt du serveur...\n", sig);
+
+    if (server_sock >= 0) {
+        close(server_sock);
+        printf("Socket serveur fermé\n");
+    }
+
     nettoyer_ressources();
     exit(0);
 }
