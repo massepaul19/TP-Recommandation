@@ -20,4 +20,6 @@ void Menu_GRAPHE();;
 
 void extraction();
 
+void Menu_Factorisation();
+
 #endif

@@ -364,16 +364,16 @@ void sauvegarder_pagerank(GrapheBipartite *graphe, ResultatPageRank *pagerank, c
 }
 
 //----------------------------------------------------------------------------
-// Fonction test pour la recommandation
+// Fonction pour la recommandation
 
-void recommander_articles(int id_user, GrapheBipartite *graphe, ResultatPageRank *pagerank, Transaction *transactions, int nb_transactions) {
+void recommander_articles(int id_user, int nb_recommandations, GrapheBipartite *graphe, ResultatPageRank *pagerank, Transaction *transactions, int nb_transactions) {
     int user_idx = graphe->map_users[id_user];
     if (user_idx == -1) {
         printf("Utilisateur %d inconnu.\n", id_user);
         return;
     }
 
-    // Tableau pour marquer les articles déjà vus
+    // Marquer les articles déjà vus
     char* deja_vus = calloc(graphe->max_article_id + 1, sizeof(char));
     for (int i = 0; i < nb_transactions; i++) {
         if (transactions[i].id_user == id_user) {
@@ -390,14 +390,89 @@ void recommander_articles(int id_user, GrapheBipartite *graphe, ResultatPageRank
             float score = pagerank->pagerank_vector[global_idx];
             printf(" - Article %d avec score %.6f\n", id_article, score);
             count++;
-            if (count >= 5) break; // on recommande 5 articles max
+            if (count >= nb_recommandations) break;
         }
     }
 
     free(deja_vus);
 }
 
+//###############################################################################
+//----------------------------------------------------------------------------
+// Cette fonction me permet d'automatiser toutes les étapes afin de juste donner 
+// la recommandation aux clients
 
+char* traiter_recommandation_graphe(int id_user, int nb_reco) {
+    static char buffer[2048];
+    buffer[0] = '\0';
+    
+    static Transaction* train_data = NULL;
+    static int nb_train = 0;  // Ajout de la déclaration manquante
+    static GrapheBipartite graphe;  // Changement de type
+    static ResultatPageRank* pagerank = NULL;  // Ajout de la déclaration
+    static int graphe_construit = 0;  // Changement de type (int au lieu de GrapheBipartite)
+    
+    if (!train_data) {
+        train_data = lire_fichier_train("Train.txt", &nb_train);
+    }
 
+    if (!graphe_construit) {
+        creer_mappings_optimise(train_data, nb_train, &graphe);
+        construire_matrice_adjacence_optimise(train_data, nb_train, &graphe);
+        graphe_construit = 1;
+    }
+
+    if (!pagerank) {
+        pagerank = pagerank_optimise(&graphe, 0.85, 1e-6, 50);
+    }
+
+    recommander_articles_buffer(id_user, nb_reco, &graphe, pagerank, train_data, nb_train, buffer);
+
+    return buffer;
+}
+
+//###############################################################################
+
+void recommander_articles_buffer(int id_user, int nb_reco, GrapheBipartite *graphe, 
+                               ResultatPageRank *pagerank, Transaction *transactions,
+                               int nb_transactions, char* buffer) {
+    // Initialisation du buffer
+    snprintf(buffer, 2048, "Recommandations pour l'utilisateur %d:\n", id_user);
+    int offset = strlen(buffer);
+
+    // Vérification de l'existence de l'utilisateur
+    if (id_user < 0 || id_user >= graphe->max_user_id || graphe->map_users[id_user] == -1) {
+        snprintf(buffer + offset, 2048 - offset, "Erreur : Utilisateur inconnu.\n");
+        return;
+    }
+
+    // Marquer les articles déjà vus
+    char* deja_vus = calloc(graphe->max_article_id + 1, sizeof(char));
+    for (int i = 0; i < nb_transactions; i++) {
+        if (transactions[i].id_user == id_user) {
+            deja_vus[transactions[i].id_article] = 1;
+        }
+    }
+
+    // Récupérer les scores PageRank des articles non vus
+    int count = 0;
+    for (int i = 0; i < graphe->nb_articles && count < nb_reco; i++) {
+        int id_article = graphe->reverse_map_articles[i];
+        if (!deja_vus[id_article]) {
+            int global_idx = graphe->nb_users + i;
+            float score = pagerank->pagerank_vector[global_idx];
+            offset += snprintf(buffer + offset, 2048 - offset, 
+                             "%d. Article %d (Score: %.4f)\n", 
+                             count + 1, id_article, score);
+            count++;
+        }
+    }
+
+    free(deja_vus);
+
+    if (count == 0) {
+        snprintf(buffer + offset, 2048 - offset, "Aucune recommandation disponible.\n");
+    }
+}
 
 

@@ -1,429 +1,594 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
+#include "factorisation.h"
 
-#include "reco.h"
+MatriceComplete* matrice_complete = NULL;
 
-#define MAX_UTILISATEURS 100
-#define MAX_ARTICLES 100
-#define MAX_K 20
+// Initialise la matrice de factorisation
+MatriceFactorisation* init_matrice_factorisation(int M, int N, int K) {
+    MatriceFactorisation* mf = malloc(sizeof(MatriceFactorisation));
+    if (!mf) return NULL;
+    
+    mf->M = M;
+    mf->N = N;
+    mf->K = K;
+    mf->bias_global = 0.0;
+    
+    mf->U = malloc(M * sizeof(double*));
+    mf->V = malloc(N * sizeof(double*));
+    mf->bias_u = calloc(M, sizeof(double));
+    mf->bias_v = calloc(N, sizeof(double));
 
-// Structure pour représenter une notation
-
-typedef struct {
-    int id_utilisateur;
-    int id_article;
-    double note;
-} Notation;
-
-// Structure pour les voisins avec leur similarité
-typedef struct {
-    int id_utilisateur;
-    double similarite;
-} Voisin;
-
-// Structure principale du système de recommandation
-typedef struct {
-    double matrice_utilisateur_article[MAX_UTILISATEURS][MAX_ARTICLES];
-    double matrice_similarite[MAX_UTILISATEURS][MAX_UTILISATEURS];
-    int nombre_utilisateurs;
-    int nombre_articles;
-    int k; // nombre de voisins
-} RecommandeurKNN;
-
-
-typedef struct {
-    unsigned int id_user;
-    int nb_fois;
-} User;
-
-typedef struct {
-    unsigned int id_article;
-    unsigned int id_cat;
-    int nb_fois;
-} Article;
-
-typedef struct {
-    unsigned int id_cat;
-    int nb_fois;
-} Categorie;
-
-typedef struct {
-    int id_user;
-    int id_article;
-    int id_cat;
-    float evaluation;
-    double timestamp;
-} Transaction;
-
-
-// Fonction pour initialiser la matrice avec des zéros
-
-void initialiser_matrice(double matrice[MAX_UTILISATEURS][MAX_ARTICLES], int lignes, int colonnes) {
-    for (int i = 0; i < lignes; i++) {
-        for (int j = 0; j < colonnes; j++) {
-            matrice[i][j] = 0.0;
+    for (int i = 0; i < M; i++) {
+        mf->U[i] = malloc(K * sizeof(double));
+        for (int k = 0; k < K; k++) {
+            mf->U[i][k] = aleatoire_normal(0.0, 0.1);
         }
     }
-}
 
-// Fonction pour initialiser le recommandeur
-
-void initialiser_recommandeur(RecommandeurKNN* rec, int k) {
-    rec->k = k;
-    rec->nombre_utilisateurs = 0;
-    rec->nombre_articles = 0;
-    initialiser_matrice(rec->matrice_utilisateur_article, MAX_UTILISATEURS, MAX_ARTICLES);
-    
-    // Initialiser la matrice de similarité
-    
-    for (int i = 0; i < MAX_UTILISATEURS; i++) {
-        for (int j = 0; j < MAX_UTILISATEURS; j++) {
-            rec->matrice_similarite[i][j] = 0.0;
+    for (int j = 0; j < N; j++) {
+        mf->V[j] = malloc(K * sizeof(double));
+        for (int k = 0; k < K; k++) {
+            mf->V[j][k] = aleatoire_normal(0.0, 0.1);
         }
     }
+
+    return mf;
 }
 
-int Lire_Transaction(FILE *file, Transaction *t) {
-
-    return fscanf(file, "%d %d %d %f %lf", &t->id_user, &t->id_article, &t->id_cat, &t->evaluation, &t->timestamp);
-    
+void liberer_matrice_factorisation(MatriceFactorisation* mf) {
+    if (!mf) return;
+    for (int i = 0; i < mf->M; i++) free(mf->U[i]);
+    for (int j = 0; j < mf->N; j++) free(mf->V[j]);
+    free(mf->U);
+    free(mf->V);
+    free(mf->bias_u);
+    free(mf->bias_v);
+    free(mf);
 }
 
-// Calculer la matrice de similarité (utilise Pearson par défaut)
 
-void calculer_matrice_similarite(RecommandeurKNN* rec, int utiliser_cosinus) {
-    for (int i = 0; i < rec->nombre_utilisateurs; i++) {
-        for (int j = 0; j < rec->nombre_utilisateurs; j++) {
-            if (i == j) {
-                rec->matrice_similarite[i][j] = 1.0;
-            } else {
-                if (utiliser_cosinus) {
-                    rec->matrice_similarite[i][j] = similarite_cosinus(rec, i, j);
-                } else {
-                    rec->matrice_similarite[i][j] = correlation_pearson(rec, i, j);
-                }
+double predire_note(MatriceFactorisation* mf, int user, int item) {
+    if (user < 0 || user >= mf->M || item < 0 || item >= mf->N)
+        return mf->bias_global;
+
+    double pred = mf->bias_global + mf->bias_u[user] + mf->bias_v[item];
+    for (int k = 0; k < mf->K; k++)
+        pred += mf->U[user][k] * mf->V[item][k];
+
+    return pred;
+}
+
+void entrainer_modele(MatriceFactorisation* mf, Transaction* data, int nb_data,
+                     double alpha, double lambda, int nb_iterations) {
+    printf("Entraînement (alpha=%.4f, lambda=%.4f, itérations=%d)\n",
+           alpha, lambda, nb_iterations);
+
+    double somme = 0.0;
+    for (int i = 0; i < nb_data; i++)
+        somme += data[i].evaluation;
+    mf->bias_global = somme / nb_data;
+
+    for (int iter = 0; iter < nb_iterations; iter++) {
+        for (int idx = 0; idx < nb_data; idx++) {
+            int u = data[idx].id_user;
+            int i = data[idx].id_article;
+            double r_ui = data[idx].evaluation;
+            if (u >= mf->M || i >= mf->N) continue;
+
+            double pred = predire_note(mf, u, i);
+            double err = r_ui - pred;
+
+            mf->bias_u[u] += alpha * (err - lambda * mf->bias_u[u]);
+            mf->bias_v[i] += alpha * (err - lambda * mf->bias_v[i]);
+
+            for (int k = 0; k < mf->K; k++) {
+                double u_k = mf->U[u][k];
+                double v_k = mf->V[i][k];
+
+                mf->U[u][k] += alpha * (err * v_k - lambda * u_k);
+                mf->V[i][k] += alpha * (err * u_k - lambda * v_k);
             }
         }
+
+        if (iter % 10 == 0) {
+            double rmse = calculer_erreur_rmse(mf, data, nb_data);
+            printf("Itération %d: RMSE = %.4f\n", iter, rmse);
+        }
     }
 }
 
-// Calculer la corrélation de Pearson entre deux utilisateurs
+double calculer_erreur_rmse(MatriceFactorisation* mf, Transaction* data, int nb_data) {
+    double erreur_totale = 0.0;
+    int nb = 0;
+    for (int i = 0; i < nb_data; i++) {
+        int u = data[i].id_user;
+        int it = data[i].id_article;
+        if (u >= mf->M || it >= mf->N) continue;
+        double err = data[i].evaluation - predire_note(mf, u, it);
+        erreur_totale += err * err;
+        nb++;
+    }
+    return (nb > 0) ? sqrt(erreur_totale / nb) : 0.0;
+}
 
-double Pearson(char *file_name) {
-
-file = fopen(file
-    double somme1 = 0.0, somme2 = 0.0;
-    int compteur = 0;
+void afficher_matrice_facteurs(MatriceFactorisation* mf) {
+    printf("\n=== Matrice de Factorisation ===\n");
+    printf("Dimensions: %d utilisateurs x %d items x %d facteurs\n", mf->M, mf->N, mf->K);
+    printf("Biais global: %.4f\n", mf->bias_global);
     
-    // Calculer les moyennes pour les articles communs
-    for (int i = 0; i < rec->nombre_articles; i++) {
-        double note1 = rec->matrice_utilisateur_article[utilisateur1][i];
-        double note2 = rec->matrice_utilisateur_article[utilisateur2][i];
-        
-        if (note1 > 0 && note2 > 0) {
-            somme1 += note1;
-            somme2 += note2;
-            compteur++;
+    printf("\nPremiers facteurs utilisateurs (U):\n");
+    for (int i = 0; i < (mf->M < 5 ? mf->M : 5); i++) {
+        printf("User %d: bias=%.3f, facteurs=[", i, mf->bias_u[i]);
+        for (int k = 0; k < mf->K; k++) {
+            printf("%.3f", mf->U[i][k]);
+            if (k < mf->K - 1) printf(", ");
+        }
+        printf("]\n");
+    }
+    
+    printf("\nPremiers facteurs items (V):\n");
+    for (int j = 0; j < (mf->N < 5 ? mf->N : 5); j++) {
+        printf("Item %d: bias=%.3f, facteurs=[", j, mf->bias_v[j]);
+        for (int k = 0; k < mf->K; k++) {
+            printf("%.3f", mf->V[j][k]);
+            if (k < mf->K - 1) printf(", ");
+        }
+        printf("]\n");
+    }
+}
+
+MatriceComplete* MF(Transaction* train_data, int nb_train, int M, int N, int K, 
+                   double alpha, double lambda, int nb_iterations) {
+    
+    printf("=== Fonction MF(train-data) ===\n");
+    printf("Entraînement avec %d transactions sur matrice %dx%d avec %d facteurs\n", 
+           nb_train, M, N, K);
+    
+    MatriceFactorisation* mf = init_matrice_factorisation(M, N, K);
+    if (!mf) {
+        printf("Erreur: Impossible d'initialiser la matrice de factorisation\n");
+        return NULL;
+    }
+    
+    entrainer_modele(mf, train_data, nb_train, alpha, lambda, nb_iterations);
+    
+    MatriceComplete* matrice_complete = creer_matrice_complete(M, N);
+    if (!matrice_complete) {
+        printf("Erreur: Impossible de créer la matrice complète\n");
+        liberer_matrice_factorisation(mf);
+        return NULL;
+    }
+    
+    printf("Génération de la matrice complète de prédictions...\n");
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            matrice_complete->matrice[i][j] = predire_note(mf, i, j);
         }
     }
     
-    if (compteur < 2) return 0.0;
+    double rmse_final = calculer_erreur_rmse(mf, train_data, nb_train);
+    printf("RMSE final du modèle: %.4f\n", rmse_final);
     
-    double moyenne1 = somme1 / compteur;
-    double moyenne2 = somme2 / compteur;
+    liberer_matrice_factorisation(mf);
+    printf("Matrice complète générée avec succès!\n\n");
+    return matrice_complete;
+}
+
+double* Predict_all_MF(MatriceComplete* full_matrix, Transaction* test_data, int nb_test) {
+    printf("=== Fonction Predict-all-MF(Full-Matrix, test-data) ===\n");
+    printf("Prédiction pour %d transactions de test\n", nb_test);
     
-    // Calculer la corrélation
-    double numerateur = 0.0;
-    double denominateur1 = 0.0;
-    double denominateur2 = 0.0;
+    if (!full_matrix || !test_data || nb_test <= 0) {
+        printf("Erreur: Paramètres invalides pour la prédiction\n");
+        return NULL;
+    }
     
-    for (int i = 0; i < rec->nombre_articles; i++) {
-        double note1 = rec->matrice_utilisateur_article[utilisateur1][i];
-        double note2 = rec->matrice_utilisateur_article[utilisateur2][i];
+    double* predictions = malloc(nb_test * sizeof(double));
+    if (!predictions) {
+        printf("Erreur: Impossible d'allouer le tableau des prédictions\n");
+        return NULL;
+    }
+    
+    int predictions_valides = 0;
+    for (int i = 0; i < nb_test; i++) {
+        int user = test_data[i].id_user;
+        int item = test_data[i].id_article;
         
-        if (note1 > 0 && note2 > 0) {
-            double difference1 = note1 - moyenne1;
-            double difference2 = note2 - moyenne2;
-            
-            numerateur += difference1 * difference2;
-            denominateur1 += difference1 * difference1;
-            denominateur2 += difference2 * difference2;
+        if (user >= 0 && user < full_matrix->M && item >= 0 && item < full_matrix->N) {
+            predictions[i] = full_matrix->matrice[user][item];
+            predictions_valides++;
+        } else {
+            predictions[i] = 0.0;
+            printf("Attention: Indices invalides pour transaction %d (user=%d, item=%d)\n", 
+                   i, user, item);
         }
     }
     
-    if (denominateur1 == 0.0 || denominateur2 == 0.0) {
-        return 0.0;
-    }
-    
-    return numerateur / (sqrt(denominateur1) * sqrt(denominateur2));
+    printf("Prédictions générées: %d valides sur %d total\n", predictions_valides, nb_test);
+    return predictions;
 }
 
-// Construire la matrice utilisateur-article à partir des données
-void construire_matrice_utilisateur_article(RecommandeurKNN* rec, Notation* notations, int nombre_notations) {
-    // Trouver le nombre max d'utilisateurs et d'articles
-    int max_utilisateur = 0, max_article = 0;
+MatriceComplete* creer_matrice_complete(int M, int N) {
+    MatriceComplete* mc = malloc(sizeof(MatriceComplete));
+    if (!mc) return NULL;
     
-    for (int i = 0; i < nombre_notations; i++) {
-        if (notations[i].id_utilisateur > max_utilisateur) 
-            max_utilisateur = notations[i].id_utilisateur;
-        if (notations[i].id_article > max_article) 
-            max_article = notations[i].id_article;
+    mc->M = M;
+    mc->N = N;
+    mc->matrice = malloc(M * sizeof(double*));
+    if (!mc->matrice) {
+        free(mc);
+        return NULL;
     }
     
-    rec->nombre_utilisateurs = max_utilisateur + 1;
-    rec->nombre_articles = max_article + 1;
-    
-    // Remplir la matrice
-    for (int i = 0; i < nombre_notations; i++) {
-        int utilisateur = notations[i].id_utilisateur;
-        int article = notations[i].id_article;
-        double note = notations[i].note;
-        
-        rec->matrice_utilisateur_article[utilisateur][article] = note;
-    }
-}
-
-
-// Fonction de comparaison pour trier les voisins
-
-int comparer_voisins(const void* a, const void* b) {
-    Voisin* v1 = (Voisin*)a;
-    Voisin* v2 = (Voisin*)b;
-    
-    if (v1->similarite > v2->similarite) return -1;
-    if (v1->similarite < v2->similarite) return 1;
-    return 0;
-}
-
-// Trouver les k voisins les plus similaires
-int trouver_k_voisins(RecommandeurKNN* rec, int id_utilisateur, Voisin* voisins) {
-    int compteur = 0;
-    
-    for (int i = 0; i < rec->nombre_utilisateurs; i++) {
-        if (i != id_utilisateur && rec->matrice_similarite[id_utilisateur][i] > 0) {
-            voisins[compteur].id_utilisateur = i;
-            voisins[compteur].similarite = rec->matrice_similarite[id_utilisateur][i];
-            compteur++;
-        }
-    }
-    
-    // Trier par similarité décroissante
-    qsort(voisins, compteur, sizeof(Voisin), comparer_voisins);
-    
-    // Retourner au maximum k voisins
-    return (compteur > rec->k) ? rec->k : compteur;
-}
-
-// Prédire la note qu'un utilisateur donnerait à un article
-double predire_note(RecommandeurKNN* rec, int id_utilisateur, int id_article) {
-    if (id_utilisateur >= rec->nombre_utilisateurs || id_article >= rec->nombre_articles) {
-        return 0.0;
-    }
-    
-    // Si l'utilisateur a déjà noté cet article
-    if (rec->matrice_utilisateur_article[id_utilisateur][id_article] > 0) {
-        return rec->matrice_utilisateur_article[id_utilisateur][id_article];
-    }
-    
-    Voisin voisins[MAX_UTILISATEURS];
-    int nombre_voisins = trouver_k_voisins(rec, id_utilisateur, voisins);
-    
-    if (nombre_voisins == 0) {
-        return 0.0;
-    }
-    
-    double somme_ponderee = 0.0;
-    double somme_similarites = 0.0;
-    
-    for (int i = 0; i < nombre_voisins; i++) {
-        int id_voisin = voisins[i].id_utilisateur;
-        double similarite = voisins[i].similarite;
-        double note_voisin = rec->matrice_utilisateur_article[id_voisin][id_article];
-        
-        if (note_voisin > 0) {
-            somme_ponderee += similarite * note_voisin;
-            somme_similarites += fabs(similarite);
-        }
-    }
-    
-    if (somme_similarites == 0.0) {
-        return 0.0;
-    }
-    
-    return somme_ponderee / somme_similarites;
-}
-
-// Structure pour les recommandations
-typedef struct {
-    int id_article;
-    double note_predite;
-} Recommandation;
-
-// Fonction de comparaison pour trier les recommandations
-int comparer_recommandations(const void* a, const void* b) {
-    Recommandation* r1 = (Recommandation*)a;
-    Recommandation* r2 = (Recommandation*)b;
-    
-    if (r1->note_predite > r2->note_predite) return -1;
-    if (r1->note_predite < r2->note_predite) return 1;
-    return 0;
-}
-
-// Générer des recommandations pour un utilisateur
-int recommander_articles(RecommandeurKNN* rec, int id_utilisateur, 
-                        Recommandation* recommandations, int max_recommandations) {
-    if (id_utilisateur >= rec->nombre_utilisateurs) {
-        return 0;
-    }
-    
-    int compteur = 0;
-    
-    // Pour chaque article non noté par l'utilisateur
-    for (int id_article = 0; id_article < rec->nombre_articles; id_article++) {
-        if (rec->matrice_utilisateur_article[id_utilisateur][id_article] == 0) {
-            double note_predite = predire_note(rec, id_utilisateur, id_article);
-            
-            if (note_predite > 0) {
-                recommandations[compteur].id_article = id_article;
-                recommandations[compteur].note_predite = note_predite;
-                compteur++;
+    for (int i = 0; i < M; i++) {
+        mc->matrice[i] = malloc(N * sizeof(double));
+        if (!mc->matrice[i]) {
+            for (int j = 0; j < i; j++) {
+                free(mc->matrice[j]);
             }
+            free(mc->matrice);
+            free(mc);
+            return NULL;
+        }
+        
+        for (int j = 0; j < N; j++) {
+            mc->matrice[i][j] = 0.0;
         }
     }
     
-    // Trier par note prédite décroissante
-    qsort(recommandations, compteur, sizeof(Recommandation), comparer_recommandations);
-    
-    return (compteur > max_recommandations) ? max_recommandations : compteur;
+    return mc;
 }
 
-// Afficher la matrice utilisateur-article
-void afficher_matrice_utilisateur_article(RecommandeurKNN* rec) {
-    printf("\nMatrice Utilisateur-Article:\n");
-    printf("     ");
-    for (int j = 0; j < rec->nombre_articles; j++) {
-        printf("Art%d ", j);
+void liberer_matrice_complete(MatriceComplete* mc) {
+    if (!mc) return;
+    
+    for (int i = 0; i < mc->M; i++) {
+        free(mc->matrice[i]);
+    }
+    free(mc->matrice);
+    free(mc);
+}
+
+void afficher_matrice_complete(MatriceComplete* mc) {
+    if (!mc) {
+        printf("Matrice nulle\n");
+        return;
+    }
+    
+    printf("\n=== Matrice Complète %dx%d ===\n", mc->M, mc->N);
+    printf("User\\Item");
+    for (int j = 0; j < (mc->N < 10 ? mc->N : 10); j++) {
+        printf("%8d", j);
     }
     printf("\n");
     
-    for (int i = 0; i < rec->nombre_utilisateurs; i++) {
-        printf("U%d   ", i);
-        for (int j = 0; j < rec->nombre_articles; j++) {
-            if (rec->matrice_utilisateur_article[i][j] > 0) {
-                printf("%.1f  ", rec->matrice_utilisateur_article[i][j]);
-            } else {
-                printf(" -   ");
-            }
+    for (int i = 0; i < (mc->M < 10 ? mc->M : 10); i++) {
+        printf("%8d ", i);
+        for (int j = 0; j < (mc->N < 10 ? mc->N : 10); j++) {
+            printf("%8.2f", mc->matrice[i][j]);
         }
         printf("\n");
-    }
-}
-
-// Afficher la matrice de similarité
-void afficher_matrice_similarite(RecommandeurKNN* rec) {
-    printf("\nMatrice de Similarité:\n");
-    printf("     ");
-    for (int j = 0; j < rec->nombre_utilisateurs; j++) {
-        printf("  U%d   ", j);
     }
     printf("\n");
+}
+
+double aleatoire_normal(double mean, double std) {
+    static int have_spare = 0;
+    static double spare;
     
-    for (int i = 0; i < rec->nombre_utilisateurs; i++) {
-        printf("U%d   ", i);
-        for (int j = 0; j < rec->nombre_utilisateurs; j++) {
-            printf("%.3f  ", rec->matrice_similarite[i][j]);
+    if (have_spare) {
+        have_spare = 0;
+        return spare * std + mean;
+    }
+    
+    have_spare = 1;
+    double u, v, s;
+    do {
+        u = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
+        v = ((double)rand() / RAND_MAX) * 2.0 - 1.0;
+        s = u * u + v * v;
+    } while (s >= 1.0 || s == 0.0);
+    
+    s = sqrt(-2.0 * log(s) / s);
+    spare = v * s;
+    return mean + std * u * s;
+}
+
+void melanger_transactions(Transaction* data, int nb_data) {
+    for (int i = nb_data - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        Transaction temp = data[i];
+        data[i] = data[j];
+        data[j] = temp;
+    }
+}
+
+void diviser_donnees(Transaction* transactions, int nb_total, 
+                    Transaction** train_data, int* nb_train,
+                    Transaction** test_data, int* nb_test,
+                    double ratio_train) {
+    
+    *nb_train = (int)(nb_total * ratio_train);
+    *nb_test = nb_total - *nb_train;
+    
+    *train_data = malloc(*nb_train * sizeof(Transaction));
+    *test_data = malloc(*nb_test * sizeof(Transaction));
+    
+    for (int i = 0; i < *nb_train; i++) {
+        (*train_data)[i] = transactions[i];
+    }
+    
+    for (int i = 0; i < *nb_test; i++) {
+        (*test_data)[i] = transactions[*nb_train + i];
+    }
+}
+
+void evaluer_predictions(double* predictions, Transaction* test_data, int nb_test) {
+    double erreur_totale = 0.0;
+    int nb_valides = 0;
+    
+    printf("\n=== Évaluation des prédictions ===\n");
+    printf("Comparaison réel vs prédit :\n");
+    
+    for (int i = 0; i < nb_test; i++) {
+        double reel = test_data[i].evaluation;
+        double predit = predictions[i];
+        double erreur = reel - predit;
+        
+        printf("Test %d: User %d, Item %d, Réel=%.1f, Prédit=%.2f, Erreur=%.2f\n",
+               i, test_data[i].id_user, test_data[i].id_article, 
+               reel, predit, erreur);
+        
+        erreur_totale += erreur * erreur;
+        nb_valides++;
+    }
+    
+    if (nb_valides > 0) {
+        double rmse = sqrt(erreur_totale / nb_valides);
+        printf("\nRMSE sur les données de test : %.4f\n", rmse);
+    }
+}
+
+Transaction* creer_donnees_test(int* nb_trans) {
+    *nb_trans = 9;
+    Transaction* transactions = malloc(*nb_trans * sizeof(Transaction));
+    
+    transactions[0] = (Transaction){0, 0, 1, 5.0, 1234567890.0};
+    transactions[1] = (Transaction){0, 1, 1, 3.0, 1234567891.0};
+    transactions[2] = (Transaction){0, 3, 2, 1.0, 1234567892.0};
+    transactions[3] = (Transaction){1, 0, 1, 4.0, 1234567893.0};
+    transactions[4] = (Transaction){1, 3, 2, 1.0, 1234567894.0};
+    transactions[5] = (Transaction){2, 0, 3, 1.0, 1234567895.0};
+    transactions[6] = (Transaction){2, 1, 3, 1.0, 1234567896.0};
+    transactions[7] = (Transaction){2, 3, 2, 5.0, 1234567897.0};
+    transactions[8] = (Transaction){3, 0, 1, 1.0, 1234567898.0};
+    
+    return transactions;
+}
+
+
+char* traiter_recommandation_matricielle(int id_user, int nb_reco) {
+    static char buffer[2048];
+    buffer[0] = '\0';
+    
+    static Transaction* train_data = NULL;
+    static int nb_train = 0;
+    static MatriceComplete* matrice_complete = NULL;
+    static int matrice_construite = 0;
+    
+    if (!train_data) {
+        train_data = creer_donnees_test(&nb_train);
+        if (!train_data) {
+            snprintf(buffer, 2048, "Erreur : Impossible de charger les données d'entraînement.\n");
+            return buffer;
         }
-        printf("\n");
+    }
+    
+    if (!matrice_construite) {
+        int M = 4;
+        int N = 4;
+        int K = 10;
+        double alpha = 0.01;
+        double lambda = 0.02;
+        int nb_iterations = 100;
+        
+        matrice_complete = MF(train_data, nb_train, M, N, K, alpha, lambda, nb_iterations);
+        if (!matrice_complete) {
+            snprintf(buffer, 2048, "Erreur : Échec de la construction de la matrice de factorisation.\n");
+            return buffer;
+        }
+        matrice_construite = 1;
+    }
+    
+    int offset = snprintf(buffer, 2048, "Recommandations matricielles pour l'utilisateur %d:\n", id_user);
+    
+    if (id_user < 0 || id_user >= matrice_complete->M) {
+        snprintf(buffer + offset, 2048 - offset, "Erreur : ID utilisateur invalide (0-%d).\n", 
+                matrice_complete->M - 1);
+        return buffer;
+    }
+    
+    int* deja_evalues = calloc(matrice_complete->N, sizeof(int));
+    for (int i = 0; i < nb_train; i++) {
+        if (train_data[i].id_user == id_user && 
+            train_data[i].id_article >= 0 && 
+            train_data[i].id_article < matrice_complete->N) {
+            deja_evalues[train_data[i].id_article] = 1;
+        }
+    }
+    
+    typedef struct {
+        int item_id;
+        double score;
+    } Recommandation;
+    
+    Recommandation* recs = malloc(matrice_complete->N * sizeof(Recommandation));
+    int nb_recs_disponibles = 0;
+    
+    for (int j = 0; j < matrice_complete->N; j++) {
+        if (!deja_evalues[j]) {
+            recs[nb_recs_disponibles].item_id = j;
+            recs[nb_recs_disponibles].score = matrice_complete->matrice[id_user][j];
+            nb_recs_disponibles++;
+        }
+    }
+    
+    for (int i = 0; i < nb_recs_disponibles - 1; i++) {
+        for (int j = 0; j < nb_recs_disponibles - i - 1; j++) {
+            if (recs[j].score < recs[j + 1].score) {
+                Recommandation temp = recs[j];
+                recs[j] = recs[j + 1];
+                recs[j + 1] = temp;
+            }
+        }
+    }
+    
+    int nb_a_afficher = (nb_reco < nb_recs_disponibles) ? nb_reco : nb_recs_disponibles;
+    
+    if (nb_a_afficher == 0) {
+        snprintf(buffer + offset, 2048 - offset, "Aucune recommandation disponible.\n");
+    } else {
+        for (int i = 0; i < nb_a_afficher; i++) {
+            offset += snprintf(buffer + offset, 2048 - offset, 
+                             "%d. Article %d (Score: %.4f)\n", 
+                             i + 1, recs[i].item_id, recs[i].score);
+        }
+    }
+    
+    free(deja_evalues);
+    free(recs);
+    return buffer;
+}
+
+/*
+void nettoyer_memoire_matricielle() {
+    // Cette fonction serait implémentée si on avait des variables globales à nettoyer
+}
+*/
+
+/*
+void demander_id_et_recommandations( int* id_user, int* nb_reco) {
+    
+    MatriceComplete* matrice_complete;
+    
+    if (!matrice_complete) {
+        printf("Erreur : matrice complète non initialisée.\n");
+        *id_user = -1;
+        *nb_reco = -1;
+        return;
+    }
+
+    printf("\nEntrez l'ID de l'utilisateur (0-%d): ", matrice_complete->M - 1);
+    while (scanf("%d", id_user) != 1 || *id_user < 0 || *id_user >= matrice_complete->M) {
+        printf("ID invalide. Veuillez entrer un nombre entre 0 et %d: ", matrice_complete->M - 1);
+        while (getchar() != '\n'); // Vide le buffer
+    }
+
+    printf("Entrez le nombre de recommandations à générer: ");
+    while (scanf("%d", nb_reco) != 1 || *nb_reco <= 0) {
+        printf("Nombre invalide. Veuillez entrer un nombre positif : ");
+        while (getchar() != '\n'); // Vide le buffer
     }
 }
 
-// Afficher les voisins les plus proches d'un utilisateur
-void afficher_voisins_proches(RecommandeurKNN* rec, int id_utilisateur) {
-    Voisin voisins[MAX_UTILISATEURS];
-    int nombre_voisins = trouver_k_voisins(rec, id_utilisateur, voisins);
-    
-    printf("\nVoisins les plus proches de l'utilisateur %d:\n", id_utilisateur);
-    for (int i = 0; i < nombre_voisins; i++) {
-        printf("  Utilisateur %d: similarité = %.3f\n", 
-               voisins[i].id_utilisateur, voisins[i].similarite);
-    }
-}
+*/
 
-// Fonction principale de démonstration
-int main() {
-    printf("=== Système de Recommandation KNN en C ===\n");
-    printf("=== Implémentation en Français ===\n\n");
-    
-    // Données d'exemple basées sur le tableau de l'exercice
-    Notation notations[] = {
-        {1, 1, 5.0}, {1, 2, 3.0}, {1, 3, 4.0}, {1, 4, 4.0},
-        {2, 1, 3.0}, {2, 2, 1.0}, {2, 3, 2.0}, {2, 4, 3.0}, {2, 5, 3.0},
-        {3, 1, 4.0}, {3, 2, 3.0}, {3, 3, 4.0}, {3, 4, 3.0}, {3, 5, 5.0},
-        {4, 1, 3.0}, {4, 2, 3.0}, {4, 3, 1.0}, {4, 4, 5.0}, {4, 5, 4.0},
-        {5, 1, 1.0}, {5, 2, 5.0}, {5, 3, 5.0}, {5, 4, 2.0}, {5, 5, 1.0}
-    };
-    
-    int nombre_notations = sizeof(notations) / sizeof(Notation);
-    
-    // Initialiser le recommandeur avec k=3
-    RecommandeurKNN rec;
-    initialiser_recommandeur(&rec, 3);
-    
-    // Construire la matrice utilisateur-article
-    construire_matrice_utilisateur_article(&rec, notations, nombre_notations);
-    
-    printf("Données chargées: %d utilisateurs, %d articles, %d notations\n", 
-           rec.nombre_utilisateurs, rec.nombre_articles, nombre_notations);
-    
-    // Afficher la matrice utilisateur-article
-    afficher_matrice_utilisateur_article(&rec);
-    
-    // Calculer la matrice de similarité avec Pearson
-    printf("\n--- Calcul avec corrélation de Pearson ---\n");
-    calculer_matrice_similarite(&rec, 0); // 0 = Pearson, 1 = Cosinus
-    afficher_matrice_similarite(&rec);
-    
-    // Afficher les voisins proches
-    int utilisateur_test = 1;
-    afficher_voisins_proches(&rec, utilisateur_test);
-    
-    // Faire des prédictions
-    int article_test = 5;
-    printf("\n=== Prédictions ===\n");
-    double note_predite = predire_note(&rec, utilisateur_test, article_test);
-    printf("Prédiction pour Utilisateur %d, Article %d: %.3f\n", 
-           utilisateur_test, article_test, note_predite);
-    
-    // Générer des recommandations
-    printf("\n=== Recommandations pour l'Utilisateur %d ===\n", utilisateur_test);
-    Recommandation recommandations[MAX_ARTICLES];
-    int nombre_recs = recommander_articles(&rec, utilisateur_test, recommandations, 5);
-    
-    for (int i = 0; i < nombre_recs; i++) {
-        printf("%d. Article %d: note prédite = %.3f\n", 
-               i + 1, recommandations[i].id_article, recommandations[i].note_predite);
+void demander_id_et_recommandations(MatriceComplete* matrice_complete , int* id_user, int* nb_reco) {
+    if (!matrice_complete) {
+        printf("Erreur : matrice complète non initialisée.\n");
+        *id_user = -1;
+        *nb_reco = -1;
+        return;
     }
-    
-    // Comparer avec la similarité cosinus
-    printf("\n--- Calcul avec similarité cosinus ---\n");
-    calculer_matrice_similarite(&rec, 1); // 1 = Cosinus
-    afficher_matrice_similarite(&rec);
-    
-    note_predite = predire_note(&rec, utilisateur_test, article_test);
-    printf("Prédiction (Cosinus) pour Utilisateur %d, Article %d: %.3f\n", 
-           utilisateur_test, article_test, note_predite);
-    
-    // Nouvelles recommandations avec cosinus
-    printf("\n=== Recommandations (Cosinus) pour l'Utilisateur %d ===\n", utilisateur_test);
-    nombre_recs = recommander_articles(&rec, utilisateur_test, recommandations, 5);
-    
-    for (int i = 0; i < nombre_recs; i++) {
-        printf("%d. Article %d: note prédite = %.3f\n", 
-               i + 1, recommandations[i].id_article, recommandations[i].note_predite);
+
+    printf("\nEntrez l'ID de l'utilisateur (0-%d): ", matrice_complete->M - 1);
+    while (scanf("%d", id_user) != 1 || *id_user < 0 || *id_user >= matrice_complete->M) {
+        printf("ID invalide. Veuillez entrer un nombre entre 0 et %d: ", matrice_complete->M - 1);
+        while (getchar() != '\n'); // Vide le buffer
     }
-    
-    printf("\n=== Fin de la démonstration ===\n");
-    return 0;
+
+    printf("Entrez le nombre de recommandations à générer: ");
+    while (scanf("%d", nb_reco) != 1 || *nb_reco <= 0) {
+        printf("Nombre invalide. Veuillez entrer un nombre positif : ");
+        while (getchar() != '\n'); // Vide le buffer
+    }
 }
+/*
+char* traiter_recommandation_matricielle(int id_user, int nb_reco) {
+    
+    static char buffer[2048];
+    if (!matrice_complete) {
+        snprintf(buffer, sizeof(buffer), "Erreur: Matrice de recommandation non initialisée");
+        return buffer;
+    }
+
+    // Vérification des limites
+    if (id_user < 0 || id_user >= matrice_complete->M) {
+        snprintf(buffer, sizeof(buffer), "Erreur: ID utilisateur invalide (doit être entre 0 et %d)", matrice_complete->M - 1);
+        return buffer;
+    }
+
+    if (nb_reco <= 0) {
+        snprintf(buffer, sizeof(buffer), "Erreur: Nombre de recommandations doit être positif");
+        return buffer;
+    }
+
+    // Marquer les articles déjà évalués
+    int* deja_evalues = calloc(matrice_complete->N, sizeof(int));
+    for (int i = 0; train_data && i < nb_train; i++) {
+        if (train_data[i].id_user == id_user) {
+            deja_evalues[train_data[i].id_article] = 1;
+        }
+    }
+
+    // Structure pour stocker les recommandations
+    typedef struct {
+        int item_id;
+        double score;
+    } Recommandation;
+
+    Recommandation* recs = malloc(matrice_complete->N * sizeof(Recommandation));
+    int nb_recs_disponibles = 0;
+
+    // Collecter les scores pour les articles non évalués
+    for (int j = 0; j < matrice_complete->N; j++) {
+        if (!deja_evalues[j]) {
+            recs[nb_recs_disponibles].item_id = j;
+            recs[nb_recs_disponibles].score = matrice_complete->matrice[id_user][j];
+            nb_recs_disponibles++;
+        }
+    }
+
+    // Tri par score décroissant (tri à bulles simple)
+    for (int i = 0; i < nb_recs_disponibles - 1; i++) {
+        for (int j = 0; j < nb_recs_disponibles - i - 1; j++) {
+            if (recs[j].score < recs[j + 1].score) {
+                Recommandation temp = recs[j];
+                recs[j] = recs[j + 1];
+                recs[j + 1] = temp;
+            }
+        }
+    }
+
+    // Génération du résultat
+    int offset = snprintf(buffer, sizeof(buffer), 
+                 "=== Top %d recommandations pour l'utilisateur %d ===\n",
+                 nb_reco, id_user);
+
+    int nb_a_afficher = nb_reco < nb_recs_disponibles ? nb_reco : nb_recs_disponibles;
+    
+    if (nb_a_afficher == 0) {
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset,
+                         "Aucune recommandation disponible.\n");
+    } else {
+        for (int i = 0; i < nb_a_afficher; i++) {
+            offset += snprintf(buffer + offset, sizeof(buffer) - offset,
+                             "%d. Article %d (score: %.4f)\n",
+                             i + 1, recs[i].item_id, recs[i].score);
+        }
+    }
+
+    free(deja_evalues);
+    free(recs);
+    return buffer;
+}
+*/

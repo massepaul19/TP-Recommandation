@@ -4,11 +4,16 @@
 CISSE = gcc
 EXEC = cisse.out
 
-DOSSIER_OBJET = ./obj/main.o ./obj/reco.o ./obj/reco_KNN.o ./obj/menu.o ./obj/graphe.o
+DOSSIER_OBJET = ./obj/main.o ./obj/reco.o ./obj/reco_KNN.o ./obj/menu.o ./obj/graphe.o ./obj/factorisation.o
  
-OBJET_biblio_dyn = ./obj/reco_pic.o ./obj/reco_KNN_pic.o ./obj/graphe_pic.o
-OBJET_biblio_stac = ./obj/reco.o ./obj/reco_KNN.o ./obj/graphe.o
+OBJET_biblio_dyn = ./obj/reco_pic.o ./obj/reco_KNN_pic.o ./obj/graphe_pic.o ./obj/factorisation_pic.o
+OBJET_biblio_stac = ./obj/reco.o ./obj/reco_KNN.o ./obj/graphe.o ./obj/factorisation.o
 
+#je définis les var des objets
+
+objKNN = ./obj/reco_pic.o ./obj/reco_KNN_pic.o #KNN
+objfacto = ./obj/reco_pic.o ./obj/factorisation_pic.o #FACTO
+objgra = ./obj/reco_pic.o ./obj/graphe_pic.o   #GRAPHE
 
 ALERT = -Wall -Werror -Wextra -lm
 
@@ -58,6 +63,12 @@ $(EXEC): $(DOSSIER_OBJET)
 	mkdir -p obj
 	$(CISSE) -c src/graphe.c -o ./obj/graphe.o -Iinclude $(ALERT)
 
+########
+
+./obj/factorisation.o: src/factorisation.c include/factorisation.h
+	mkdir -p obj
+	$(CISSE) -c src/factorisation.c -o ./obj/factorisation.o -Iinclude $(ALERT)
+
 ###########################################################
 
 # -------------------------------------------
@@ -72,8 +83,61 @@ bin/runstatic: test/main.c lib/librecommantion.a ./obj/menu.o
 	mkdir -p bin
 	$(CISSE) test/main.c ./obj/menu.o -Llib -lrecommantion -o bin/runstatic -Iinclude $(REP_stan) $(ALERT)
 
+
+
+
+
+
+
+
+
+
+
+
+
+###########################################################
+# -------------------------------------------
+# === Bibliothèque dynamique ===
+# -------------------------------------------
+
+lib/libreco_KNN.so:
+	mkdir -p lib obj
+	$(CISSE) -fPIC -c src/reco.c -o ./obj/reco_pic.o -Iinclude $(ALERT)
+	$(CISSE) -fPIC -c src/reco_KNN.c -o ./obj/reco_KNN_pic.o -Iinclude $(ALERT)
+	$(CISSE) -shared -o lib/libreco_KNN.so $(objKNN) $(ALERT)
+
+##############################
+#Bibliotheque GRAPHE
+	
+lib/libGraphe.so: 
+	mkdir -p lib obj
+	#$(CISSE) -fPIC -c src/reco.c -o ./obj/reco_pic.o -Iinclude $(ALERT)
+	$(CISSE) -fPIC -c src/graphe.c -o ./obj/graphe_pic.o -Iinclude $(ALERT)
+	$(CISSE) -shared -o lib/libGraphe.so $(objgra) $(ALERT)
+
+#Bibliotheque GRAPHE
+	
+lib/libFactorisation.so: 
+	mkdir -p lib obj
+	#$(CISSE) -fPIC -c src/reco.c -o ./obj/reco_pic.o -Iinclude $(ALERT)
+	$(CISSE) -fPIC -c src/factorisation.c -o ./obj/factorisation_pic.o -Iinclude $(ALERT)
+	$(CISSE) -shared -o lib/libFactorisation.so $(objfacto) $(ALERT)
+
+###########################################################
+#------------------ Execution -----------------------------
 ###########################################################
 
+bin/rundynessai: test/main.c lib/libreco_KNN.so lib/libGraphe.so lib/libFactorisation.so ./obj/menu.o
+	mkdir -p bin
+	$(CISSE) test/main.c ./obj/menu.o -Llib -lreco_KNN -lGraphe -lFactorisation -o bin/rundynessai -Iinclude $(REP_stan) $(ALERT)
+
+rundynessai: bin/rundynessai
+	LD_LIBRARY_PATH=./lib ./bin/rundynessai
+	
+	
+	
+#ce bloc ne doit pas exister mais important pour mes tests
+###########################################################
 # -------------------------------------------
 # === Bibliothèque dynamique ===
 # -------------------------------------------
@@ -169,6 +233,7 @@ help:
 	@echo 'make run           - Executer le programme'
 	@echo 'make runstatic     - Executer avec Biblio statique'
 	@echo 'make rundyn        - Executer avec Biblio dynamique'
+	@echo 'make rundynessai   - Executer avec 03 Biblios dynamique'
 	@echo 'make serveur       - Demarrer avec le serveur'
 	@echo 'make stop-serveur  - Arrêter le serveur'
 	@echo 'make client        - Demarrer côté client'

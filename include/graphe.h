@@ -27,6 +27,7 @@ typedef struct {
     float convergence;
 } ResultatPageRank;
 
+
 // Fonctions de lecture
 Transaction* lire_fichier_train(const char* nom_fichier, int* nb_transactions);
 Transaction* lire_fichier_test(const char* nom_fichier, int* nb_transactions);
@@ -47,7 +48,16 @@ void sauvegarder_pagerank(GrapheBipartite *graphe, ResultatPageRank *pagerank, c
 
 //test recommandation
 
-void recommander_articles(int id_user, GrapheBipartite *graphe, ResultatPageRank *pagerank, Transaction *transactions, int nb_transactions);
+//void recommander_articles(int id_user, GrapheBipartite *graphe, ResultatPageRank *pagerank, Transaction *transactions, int nb_transactions);
+
+void recommander_articles( int id_user, int nb_reco, GrapheBipartite *graphe, ResultatPageRank *pagerank, Transaction *transactions, int nb_transactions);
+
+//fonction pour coté client
+char* traiter_recommandation_graphe(int id_user, int nb_reco);
+
+void recommander_articles_buffer(int id_user, int nb_reco, GrapheBipartite *graphe, 
+                                ResultatPageRank *pagerank, Transaction *transactions, 
+                                int nb_transactions, char* buffer);
 
 #endif 
 

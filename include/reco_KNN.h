@@ -45,37 +45,10 @@ extern RecommandeurKNN* recommandeur_global;
 
 // ========== FONCTIONS PRINCIPALES (TÂCHES DU DEVOIR) ==========
 
-/**
- * TÂCHE 1: Pearson(train-data)
- * Prend en entrée l'ensemble des transactions pour l'entraînement et retourne 
- * une matrice carrée de similarité entre les utilisateurs
- * @param filename : fichier des données d'entraînement
- * @return : matrice de similarité entre utilisateurs
- */
 double** Pearson(const char* filename);
 
-/**
- * TÂCHE 2: Predict(u,i)
- * Prend en entrée l'identifiant d'un utilisateur et d'un item et donne en sortie la 
- * note que l'utilisateur va attribuer à l'item
- * @param rec : recommandeur KNN initialisé
- * @param id_user : identifiant de l'utilisateur
- * @param id_article : identifiant de l'article
- * @return : note prédite
- */
 float Predict(RecommandeurKNN* rec, unsigned int id_user, unsigned int id_article);
 
-/**
- * TÂCHE 3: Predict-all(test-data)
- * Prend en entrée l'ensemble des transactions du jeu de données de test
- * et donne en sortie l'ensemble de toutes les notes prédites. À partir de ces notes, vous pourrez
- * évaluer le modèle de KNN construit.
- * @param rec : recommandeur KNN initialisé
- * @param test_filename : fichier des données de test
- * @param predictions : tableau pour stocker les prédictions
- * @param max_predictions : taille maximale du tableau
- * @return : nombre de prédictions effectuées
- */
 int Predict_all(RecommandeurKNN* rec, const char* test_filename, Prediction predictions[], int max_predictions);
 
 // ========== GESTION DU RECOMMANDEUR ==========
@@ -165,5 +138,14 @@ void sauvegarder_predictions(const char* filename, Prediction predictions[], int
  * Fonctions de test
  */
 void tester_predictions(RecommandeurKNN* rec);
+
+// Fonction pour traiter les recommandations KNN via buffer
+char* traiter_recommandation_knn(int id_user, int nb_reco);
+
+int comparer_predictions(const void* a, const void* b);
+// Fonction buffer pour KNN
+void recommander_articles_knn_buffer(int id_user, int nb_reco, RecommandeurKNN* rec, char* buffer);
+
+int utilisateur_a_note_article(RecommandeurKNN* rec, int index_user, int index_article);
 
 #endif 

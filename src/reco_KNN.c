@@ -232,223 +232,8 @@ double correlation_pearson_entre_users(RecommandeurKNN* rec, int index_user1, in
     return numerateur / denominateur;
 }
 
-//-----------------------------------------------------------------
-
-//---------- Calcul de la matrice de similarité complète  ---------
-/*
-void calculer_matrice_similarite_complete(RecommandeurKNN* rec) {
-    if (!rec) {
-        printf("Erreur : Recommandeur NULL\n");
-        return;
-    }
-    
-    printf("Calcul de la matrice de similarité...\n");
-    
-    // Initialiser la matrice
-    for (int i = 0; i < rec->nb_users; i++) {
-        for (int j = 0; j < rec->nb_users; j++) {
-            rec->matrice_similarite[i][j] = 0.0;
-        }
-    }
-    
-    // Calculer les similarités
-    for (int i = 0; i < rec->nb_users; i++) {
-        // Afficher le progrès
-        if ((i + 1) % 10 == 0 || i == rec->nb_users - 1) {
-            printf("Utilisateur %d/%d traité\n", i + 1, rec->nb_users);
-        }
-        
-        for (int j = i; j < rec->nb_users; j++) {
-            double correlation = correlation_pearson_entre_users(rec, i, j);
-            
-            // Vérifier si la corrélation est valide
-            if (isnan(correlation) || isinf(correlation)) {
-                correlation = 0.0;
-            }
-            
-            rec->matrice_similarite[i][j] = correlation;
-            rec->matrice_similarite[j][i] = correlation; // Matrice symétrique
-        }
-    }
-    
-    rec->matrice_similarite_calculee = 1;
-    printf("Matrice de similarité calculée avec succès\n");
-}
-
-//-----------------------------------------------------------------
 // ========== TÂCHE 1: PEARSON(train-data) ==========
 
-double** Pearson(const char* filename) {
-    printf("=== DÉBUT CALCUL MATRICE PEARSON ===\n");
-    
-    // Initialiser le recommandeur depuis le fichier
-    RecommandeurKNN* rec = initialiser_recommandeur_depuis_fichier(filename);
-    if (!rec) {
-        printf("✗ Erreur : Impossible d'initialiser le recommandeur\n");
-        return NULL;
-    }
-    
-    // Vérifier la validité des données
-    if (!verifier_donnees_recommandeur(rec)) {
-        printf("✗ Erreur : Données du recommandeur invalides\n");
-        liberer_recommandeur(rec);
-        return NULL;
-    }
-    
-    // Stocker globalement pour les autres fonctions
-    recommandeur_global = rec;
-    
-    // Construire la matrice utilisateur-article
-    if (!construire_matrice_evaluations(rec)) {
-        printf("✗ Erreur : Impossible de construire la matrice d'évaluations\n");
-        liberer_recommandeur(rec);
-        return NULL;
-    }
-    
-    // Calculer les moyennes des utilisateurs
-    calculer_moyennes_utilisateurs(rec);
-    
-    // Calculer la matrice de similarité complète
-    calculer_matrice_similarite_complete(rec);
-    
-    // Vérifier que le calcul s'est bien passé
-    if (!rec->matrice_similarite_calculee) {
-        printf("✗ Erreur lors du calcul de la matrice de Pearson\n");
-        liberer_recommandeur(rec);
-        return NULL;
-    }
-    
-    // Allouer et copier la matrice de retour
-    double** matrice_retour = allouer_matrice_double(rec->nb_users, rec->nb_users);
-    if (!matrice_retour) {
-        printf("✗ Erreur : Allocation mémoire pour la matrice de retour\n");
-        liberer_recommandeur(rec);
-        return NULL;
-    }
-    
-    for (int i = 0; i < rec->nb_users; i++) {
-        for (int j = 0; j < rec->nb_users; j++) {
-            matrice_retour[i][j] = rec->matrice_similarite[i][j];
-        }
-    }
-    
-    printf("✓ Matrice de similarité calculée avec succès (%dx%d)\n", rec->nb_users, rec->nb_users);
-    
-    return matrice_retour;
-}
-*/
-
-/*
-// ========== TÂCHE 1: PEARSON(train-data) ==========
-double** Pearson(const char* filename) {
-    printf("=== DÉBUT CALCUL MATRICE PEARSON ===\n");
-    
-    // Initialiser le recommandeur depuis le fichier
-    RecommandeurKNN* rec = initialiser_recommandeur_depuis_fichier(filename);
-    if (!rec) {
-        printf("✗ Erreur : Impossible d'initialiser le recommandeur\n");
-        return NULL;
-    }
-    
-    // Vérifier la validité des données
-    if (!verifier_donnees_recommandeur(rec)) {
-        printf("✗ Erreur : Données du recommandeur invalides\n");
-        liberer_recommandeur(rec);
-        return NULL;
-    }
-    
-    // Construire la matrice utilisateur-article
-    if (!construire_matrice_evaluations(rec)) {
-        printf("✗ Erreur : Impossible de construire la matrice d'évaluations\n");
-        liberer_recommandeur(rec);
-        return NULL;
-    }
-    
-    // Calculer les moyennes des utilisateurs
-    calculer_moyennes_utilisateurs(rec);
-    
-    // Calculer la matrice de similarité complète
-    calculer_matrice_similarite_complete(rec);
-    
-    // CORRECTION : Vérifier que le calcul s'est bien passé
-    // On ne vérifie plus le flag, on vérifie directement si la matrice existe
-    if (!rec->matrice_similarite) {
-        printf("✗ Erreur : La matrice de similarité n'a pas été allouée\n");
-        liberer_recommandeur(rec);
-        return NULL;
-    }
-    
-    // Allouer et copier la matrice de retour
-    double** matrice_retour = allouer_matrice_double(rec->nb_users, rec->nb_users);
-    if (!matrice_retour) {
-        printf("✗ Erreur : Allocation mémoire pour la matrice de retour\n");
-        liberer_recommandeur(rec);
-        return NULL;
-    }
-    
-    for (int i = 0; i < rec->nb_users; i++) {
-        for (int j = 0; j < rec->nb_users; j++) {
-            matrice_retour[i][j] = rec->matrice_similarite[i][j];
-        }
-    }
-    
-    // CORRECTION : Stocker globalement APRÈS avoir vérifié que tout est OK
-    recommandeur_global = rec;
-    
-    printf("✓ Matrice de Pearson calculée avec succès (%dx%d)\n", rec->nb_users, rec->nb_users);
-    
-    return matrice_retour;
-}
-
-// Modification de la fonction calculer_matrice_similarite_complete
-void calculer_matrice_similarite_complete(RecommandeurKNN* rec) {
-    if (!rec) {
-        printf("Erreur : Recommandeur NULL\n");
-        return;
-    }
-    
-    printf("Calcul de la matrice de similarité...\n");
-    
-    // CORRECTION : S'assurer que la matrice est allouée
-    if (!rec->matrice_similarite) {
-        printf("✗ Erreur : Matrice de similarité non allouée\n");
-        return;
-    }
-    
-    // Initialiser la matrice
-    for (int i = 0; i < rec->nb_users; i++) {
-        for (int j = 0; j < rec->nb_users; j++) {
-            rec->matrice_similarite[i][j] = 0.0;
-        }
-    }
-    
-    // Calculer les similarités
-    for (int i = 0; i < rec->nb_users; i++) {
-        // Afficher le progrès
-        if ((i + 1) % 10 == 0 || i == rec->nb_users - 1) {
-            printf("Utilisateur %d/%d traité\n", i + 1, rec->nb_users);
-        }
-        
-        for (int j = i; j < rec->nb_users; j++) {
-            double correlation = correlation_pearson_entre_users(rec, i, j);
-            
-            // Vérifier si la corrélation est valide
-            if (isnan(correlation) || isinf(correlation)) {
-                correlation = 0.0;
-            }
-            
-            rec->matrice_similarite[i][j] = correlation;
-            rec->matrice_similarite[j][i] = correlation; // Matrice symétrique
-        }
-    }
-    
-    // CORRECTION : Marquer comme calculée
-    rec->matrice_similarite_calculee = 1;
-    printf("Matrice de similarité calculée avec succès\n");
-}
-*/
-
-// ========== TÂCHE 1: PEARSON(train-data) ==========
 double** Pearson(const char* filename) {
     printf("=== DÉBUT CALCUL MATRICE PEARSON ===\n");
     
@@ -678,6 +463,7 @@ Voisin* trouver_k_voisins_similaires(RecommandeurKNN* rec, unsigned int id_user)
 }
 
 double calculer_prediction_ponderee(RecommandeurKNN* rec, Voisin* voisins, unsigned int id_article, unsigned int id_user) {
+
     int index_user = trouver_index_utilisateur(rec, id_user);
     int index_article = trouver_index_article(rec, id_article);
     
@@ -1232,6 +1018,185 @@ void afficher_matrice_similarite_limitee(RecommandeurKNN* rec, int limite) {
     
     if (limite < nb_users) {
         printf("... (matrice tronquée pour l'affichage)\n");
+    }
+}
+
+
+//###############################################################################
+//----------------------------------------------------------------------------
+// Cette fonction me permet d'automatiser toutes les étapes afin de juste donner 
+// la recommandation aux clients KNN
+
+char* traiter_recommandation_knn(int id_user, int nb_reco) {
+
+    static char buffer[2048];
+    buffer[0] = '\0';
+    
+    static RecommandeurKNN* rec = NULL;
+    static int knn_initialise = 0;
+    
+    // Initialisation du recommandeur KNN (une seule fois)
+    if (!knn_initialise) {
+        rec = initialiser_recommandeur_depuis_fichier("Train.txt");
+        if (!rec) {
+            snprintf(buffer, 2048, "Erreur : Impossible d'initialiser le recommandeur KNN.\n");
+            return buffer;
+        }
+        
+        // Vérifier si les données sont bien chargées
+        printf("Données chargées - Users: %d, Articles: %d, Transactions: %d\n", 
+               rec->nb_users, rec->nb_articles, rec->nb_transactions);
+        
+        // Construction de la matrice d'évaluations
+        int result_matrice = construire_matrice_evaluations(rec);
+        printf("Résultat construction matrice: %d\n", result_matrice);
+        
+        // Vérifier si la construction a échoué (ta fonction retourne 1 en cas de succès)
+        if (result_matrice != 1) {
+            snprintf(buffer, 2048, "Erreur : Impossible de construire la matrice d'évaluations.\n");
+            return buffer;
+        }
+        
+        // Vérification supplémentaire des données
+        if (rec->nb_users == 0 || rec->nb_articles == 0) {
+            snprintf(buffer, 2048, "Erreur : Données insuffisantes pour KNN.\n");
+            return buffer;
+        }
+        
+        // Calcul des moyennes des utilisateurs
+        printf("Calcul des moyennes utilisateurs...\n");
+        calculer_moyennes_utilisateurs(rec);
+        
+        // Calcul de la matrice de similarité complète
+        printf("Calcul de la matrice de similarité...\n");
+        calculer_matrice_similarite_complete(rec);
+        
+        printf("Initialisation KNN terminée avec succès!\n");
+        knn_initialise = 1;
+    }
+    
+    // Appel de la fonction buffer pour les recommandations
+    recommander_articles_knn_buffer(id_user, nb_reco, rec, buffer);
+    
+    return buffer;
+}
+
+//###############################################################################
+
+void recommander_articles_knn_buffer(int id_user, int nb_reco, RecommandeurKNN* rec, char* buffer) {
+    // Initialisation du buffer
+    snprintf(buffer, 2048, "Recommandations KNN pour l'utilisateur %d:\n", id_user);
+    int offset = strlen(buffer);
+    
+    // Vérifications de sécurité
+    if (!rec) {
+        snprintf(buffer + offset, 2048 - offset, "Erreur : Recommandeur non initialisé.\n");
+        return;
+    }
+    
+    if (rec->nb_users == 0 || rec->nb_articles == 0) {
+        snprintf(buffer + offset, 2048 - offset, "Erreur : Aucune donnée disponible.\n");
+        return;
+    }
+    
+    // Vérification de l'existence de l'utilisateur
+    int index_user = trouver_index_utilisateur(rec, id_user);
+    if (index_user == -1) {
+        snprintf(buffer + offset, 2048 - offset, "Erreur : Utilisateur %d inconnu.\n", id_user);
+        
+        // Debug : afficher les utilisateurs disponibles (premiers 10)
+        offset += snprintf(buffer + offset, 2048 - offset, "Utilisateurs disponibles : ");
+        int nb_a_afficher = (rec->nb_users > 10) ? 10 : rec->nb_users;
+        for (int i = 0; i < nb_a_afficher; i++) {
+            offset += snprintf(buffer + offset, 2048 - offset, "%u ", rec->users[i].id_user);
+        }
+        if (rec->nb_users > 10) {
+            offset += snprintf(buffer + offset, 2048 - offset, "...");
+        }
+        offset += snprintf(buffer + offset, 2048 - offset, "\n");
+        return;
+    }
+    
+    // Créer un tableau pour stocker les prédictions
+    Prediction* predictions = malloc(rec->nb_articles * sizeof(Prediction));
+    if (!predictions) {
+        snprintf(buffer + offset, 2048 - offset, "Erreur : Allocation mémoire impossible.\n");
+        return;
+    }
+    
+    int nb_predictions = 0;
+    int articles_deja_notes = 0;
+    
+    // Générer les prédictions pour tous les articles non notés
+    for (int i = 0; i < rec->nb_articles; i++) {
+        unsigned int id_article = rec->articles[i].id_article;
+        
+        // Vérifier si l'utilisateur a déjà noté cet article
+        if (utilisateur_a_note_article(rec, index_user, i)) {
+            articles_deja_notes++;
+            continue;
+        }
+        
+        float prediction = Predict(rec, id_user, id_article);
+        
+        if (prediction > 0) { // Si la prédiction est valide
+            predictions[nb_predictions].id_user = id_user;
+            predictions[nb_predictions].id_article = id_article;
+            predictions[nb_predictions].note_predite = prediction;
+            predictions[nb_predictions].note_reelle = 0; // Non applicable ici
+            predictions[nb_predictions].confiance = 1.0; // Simplifié
+            nb_predictions++;
+        }
+    }
+    
+    offset += snprintf(buffer + offset, 2048 - offset, 
+                      "Articles déjà notés: %d, Prédictions calculées: %d\n", 
+                      articles_deja_notes, nb_predictions);
+    
+    if (nb_predictions == 0) {
+        snprintf(buffer + offset, 2048 - offset, "Aucune prédiction KNN disponible pour cet utilisateur.\n");
+        free(predictions);
+        return;
+    }
+    
+    // Trier les prédictions par note décroissante
+    qsort(predictions, nb_predictions, sizeof(Prediction), comparer_predictions);
+    
+    // Afficher les meilleures recommandations
+    int count = 0;
+    for (int i = 0; i < nb_predictions && count < nb_reco; i++) {
+        offset += snprintf(buffer + offset, 2048 - offset,
+                          "%d. Article %u (Note prédite: %.2f)\n",
+                          count + 1, predictions[i].id_article, predictions[i].note_predite);
+        count++;
+    }
+    
+    if (count == 0) {
+        snprintf(buffer + offset, 2048 - offset, "Aucune recommandation KNN de qualité trouvée.\n");
+    }
+    
+    free(predictions);
+}
+
+//###############################################################################
+
+// Fonction de comparaison pour trier les prédictions par note décroissante
+int comparer_predictions(const void* a, const void* b) {
+    const Prediction* pred_a = (const Prediction*)a;
+    const Prediction* pred_b = (const Prediction*)b;
+    
+    if (pred_a->note_predite > pred_b->note_predite) return -1;
+    if (pred_a->note_predite < pred_b->note_predite) return 1;
+    return 0;
+}
+
+//###############################################################################
+// Fonction pour nettoyer les ressources KNN (optionnelle)
+
+void nettoyer_knn() {
+    if (recommandeur_global) {
+        liberer_recommandeur(recommandeur_global);
+        recommandeur_global = NULL;
     }
 }
 

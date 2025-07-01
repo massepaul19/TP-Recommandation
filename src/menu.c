@@ -4,6 +4,15 @@
 #include <string.h>
 #include "reco_KNN.h"
 #include "menu.h"
+#include "factorisation.h"
+
+int matrice_construite = 0;
+
+// Variables globales
+
+static Transaction* train_data = NULL;
+static int nb_train = 0;
+static MatriceComplete* matrice_complete = NULL;
 
 // Déclaration de la variable globale
 
@@ -203,7 +212,7 @@ void Menu_Traitement() {
                 printf("ATTENTION : donnees.txt n'a pas été modifié.\n");
                 break;
             }
-
+            
             case 0:
                 // Sauvegarder les structures avant de quitter (pas donnees.txt)
                 printf("Sauvegarde des structures avant de quitter...\n");
@@ -282,7 +291,9 @@ void Menu_KNN(const char* train_file, const char* test_file) {
         printf("3. Effectuer toutes les prédictions sur le fichier de test\n");
         printf("4. Évaluer les performances\n");
         printf("5. Sauvegarder les résultats\n");
-        printf("6. Afficher les statistiques\n");
+        printf("6. Afficher les statistiques\n");       
+        printf("7. Test d'automatisation des calculs(Etapes)\n");
+        printf("0. Menu principal\n");
         printf("=========================================\n");
         printf("Votre choix : ");
       
@@ -502,7 +513,18 @@ void Menu_KNN(const char* train_file, const char* test_file) {
                 afficher_stats_recommandeur(recommandeur_global);
                 break;
             }
-
+	    
+	    case 7:
+            	    unsigned int id_user , nb_reco;
+            	    
+		    printf("Entrer l'ID Utilisateur: ");
+		    scanf("%d", &id_user);
+		    printf("Nombre de recommandations: ");
+		    scanf("%d", &nb_reco);
+		    char* resultat = traiter_recommandation_knn(id_user, nb_reco);
+		    printf("\n%s\n", resultat);
+            break;
+	    
             case 0: {
                 printf("\n=== NETTOYAGE ET SORTIE ===\n");
                 
@@ -549,6 +571,7 @@ void Menu_GRAPHE() {
         printf("3. Appliquer PageRank\n");
         printf("4. Sauvegarder les résultats PageRank\n");
         printf("5. Afficher exemple de recommandations\n");
+        printf("6. Test d'automatisation des calculs(Etapes)\n");
         printf("0. Nettoyer la mémoire et quitter\n");    
         printf("=====================================================\n");
         printf("Votre choix : ");
@@ -592,21 +615,34 @@ void Menu_GRAPHE() {
 		    if (!pagerank || graphe.nb_users == 0) {
 			printf("Vous devez d'abord exécuter PageRank !\n");
 		    } else {
-			int id_user;
+			int id_user, nb_recommandations;
 			printf("Entrez l'identifiant de l'utilisateur à recommander : ");
 			scanf("%d", &id_user);
-			getchar(); // Pour nettoyer le buffer
+			getchar(); // Nettoyage du buffer
 
-			// Vérifier si l'utilisateur existe
 			if (graphe.map_users[id_user] == -1) {
 			    printf("❌ L'utilisateur %d n'existe pas dans les données.\n", id_user);
 			} else {
-			    recommander_articles(id_user, &graphe, pagerank, train_data, nb_train);
+			    printf("Entrez le nombre de recommandations souhaitées : ");
+			    scanf("%d", &nb_recommandations);
+			    getchar(); // Nettoyage du buffer
+
+			    recommander_articles(id_user, nb_recommandations, &graphe, pagerank, train_data, nb_train);
 			}
 		    }
-		    break;
+	    break;
 
-            case 0:
+ 	    case 6: { 
+		    int id_user_test = 123; 
+		    int nb_reco_test = 5;   
+		    
+		    printf("\nTest automatisation - Lancement du calcul...\n");
+		    char *resultat = traiter_recommandation_graphe(id_user_test, nb_reco_test);
+		    printf("Recommandations générées :\n%s\n", resultat);
+	    break;
+	    }
+
+	    case 0:
                 printf("Nettoyage mémoire...\n");
                 if (graphe.matrice_adjacence) {
                     for (int i = 0; i < graphe.taille_totale; i++) {
@@ -624,9 +660,7 @@ void Menu_GRAPHE() {
                 }
                 if (train_data) {
                     free(train_data);
-          
-
-      }
+                }
                 printf("Mémoire libérée. À bientôt !\n");
                 break;
 
@@ -640,3 +674,197 @@ void Menu_GRAPHE() {
 
     } while (choix != 0);
 }
+
+
+
+void afficher_stats_matricielle() {
+    if (!train_data || nb_train == 0) {
+        printf("Aucune donnée d'entraînement chargée.\n");
+        return;
+    }
+
+    int max_user = 0;
+    int max_article = 0;
+    double sum_ratings = 0.0;
+
+    for (int i = 0; i < nb_train; i++) {
+        if (train_data[i].id_user > max_user) max_user = train_data[i].id_user;
+        if (train_data[i].id_article > max_article) max_article = train_data[i].id_article;
+        sum_ratings += train_data[i].evaluation;
+    }
+
+    printf("\n=== Statistiques des données ===\n");
+    printf("Nombre de transactions: %d\n", nb_train);
+    printf("Nombre d'utilisateurs uniques: %d\n", max_user + 1);
+    printf("Nombre d'articles uniques: %d\n", max_article + 1);
+    printf("Note moyenne: %.2f\n\n", sum_ratings / nb_train);
+}
+
+void tester_systeme_matricielle() {
+    if (!matrice_complete) {
+        printf("\nErreur: Vous devez d'abord entraîner le modèle (option 3)\n");
+        return;
+    }
+
+    int id_user, nb_reco;
+    demander_id_et_recommandations(matrice_complete , &id_user, &nb_reco);
+
+    printf("\n=== Recommandations pour l'utilisateur %d ===\n", id_user);
+    char* resultat = traiter_recommandation_matricielle(id_user, nb_reco);
+    if (resultat) {
+        printf("%s\n", resultat);
+    } else {
+        printf("Erreur lors de la génération des recommandations.\n");
+    }
+}
+
+void afficher_menu() {
+    printf("\n============================================================\n");
+    printf("=== MENU PRINCIPAL - SYSTÈME DE RECOMMANDATION ===\n");
+    printf("============================================================\n");
+    printf("1. Charger les données d'entraînement\n");
+    printf("2. Afficher les statistiques des données\n");
+    printf("3. Entraîner le modèle de factorisation matricielle\n");
+    printf("4. Tester le système matriciel\n");
+    printf("5. Évaluer le système complet\n");
+    printf("0. Quitter\n");
+    printf("============================================================\n");
+}
+
+void evaluer_systeme_complet() {
+    if (!train_data || nb_train == 0) {
+        printf("Aucune donnée d'entraînement chargée.\n");
+        return;
+    }
+
+    Transaction* train_subset = NULL;
+    Transaction* test_subset = NULL;
+    int nb_train_subset = 0, nb_test_subset = 0;
+
+    // Division des données 80/20
+    diviser_donnees(train_data, nb_train, &train_subset, &nb_train_subset,
+                   &test_subset, &nb_test_subset, 0.8);
+
+    printf("\n=== Évaluation du système ===\n");
+    printf("Données d'entraînement: %d transactions\n", nb_train_subset);
+    printf("Données de test: %d transactions\n", nb_test_subset);
+
+    // Trouver les dimensions maximales
+    int M = 0, N = 0;
+    for (int i = 0; i < nb_train_subset; i++) {
+        if (train_subset[i].id_user > M) M = train_subset[i].id_user;
+        if (train_subset[i].id_article > N) N = train_subset[i].id_article;
+    }
+    M++; N++; // Conversion d'indices en comptage
+
+    // Entraînement du modèle
+    MatriceComplete* mc = MF(train_subset, nb_train_subset, M, N, 10, 0.01, 0.02, 100);
+    if (mc) {
+        double* predictions = Predict_all_MF(mc, test_subset, nb_test_subset);
+        if (predictions) {
+            evaluer_predictions(predictions, test_subset, nb_test_subset);
+            free(predictions);
+        }
+        liberer_matrice_complete(mc);
+    }
+
+    // Libération mémoire
+    free(train_subset);
+    free(test_subset);
+}
+
+void Menu_Factorisation() {
+    int choix;
+    do {
+        afficher_menu();
+        printf("Votre choix: ");
+        if (scanf("%d", &choix) != 1) {
+            printf("Entrée invalide. Veuillez entrer un nombre.\n");
+            while (getchar() != '\n'); // Vide le buffer
+            continue;
+        }
+
+        switch (choix) {
+            case 1: // Charger les données
+                if (train_data) {
+                    free(train_data);
+                    train_data = NULL;
+                    nb_train = 0;
+                }
+                train_data = lire_fichier_train("Train.txt", &nb_train);
+                if (train_data) {
+                    printf("Données chargées avec succès (%d transactions).\n", nb_train);
+                } else {
+                    printf("Erreur lors du chargement des données.\n");
+                }
+                break;
+                
+            case 2: // Afficher statistiques
+                afficher_stats_matricielle();
+                break;
+                
+            case 3: { // Entraîner modèle
+                if (!train_data || nb_train == 0) {
+                    printf("Veuillez d'abord charger les données.\n");
+                    break;
+                }
+                
+                // Trouver les dimensions maximales
+                int M = 0, N = 0;
+                for (int i = 0; i < nb_train; i++) {
+                    if (train_data[i].id_user > M) M = train_data[i].id_user;
+                    if (train_data[i].id_article > N) N = train_data[i].id_article;
+                }
+                M++; N++; // Conversion d'indices en comptage
+                
+                // Paramètres du modèle
+                int K = 10;
+                double alpha = 0.01;
+                double lambda = 0.02;
+                int nb_iterations = 100;
+                
+                // Nettoyer l'ancien modèle si existant
+                if (matrice_complete) {
+                    liberer_matrice_complete(matrice_complete);
+                    matrice_complete = NULL;
+                }
+                
+                // Entraînement
+                printf("Début de l'entraînement du modèle...\n");
+                matrice_complete = MF(train_data, nb_train, M, N, K, alpha, lambda, nb_iterations);
+                if (matrice_complete) {
+                    printf("Modèle entraîné avec succès!\n");
+                } else {
+                    printf("Erreur lors de l'entraînement du modèle.\n");
+                }
+                break;
+            }
+                
+            case 4: // Tester système
+                tester_systeme_matricielle();
+                break;
+                
+            case 5: // Évaluer système
+                evaluer_systeme_complet();
+                break;
+                
+            case 0: // Quitter
+                printf("Nettoyage de la mémoire...\n");
+                if (train_data) {
+                    free(train_data);
+                    train_data = NULL;
+                    nb_train = 0;
+                }
+                if (matrice_complete) {
+                    liberer_matrice_complete(matrice_complete);
+                    matrice_complete = NULL;
+                }
+                printf("Au revoir!\n");
+                break;
+                
+            default:
+                printf("Choix invalide. Veuillez réessayer.\n");
+        }
+    } while (choix != 0);
+}
+

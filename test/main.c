@@ -54,6 +54,10 @@ int main() {
                 Menu_KNN("data/KNN_TRAIN/Train.txt" , "data/KNN_TRAIN/Test.txt");
                 break;
             
+            case 4:
+            	Menu_Factorisation();
+            	break;
+            	
             case 5:
             	Menu_GRAPHE();
             	break;
