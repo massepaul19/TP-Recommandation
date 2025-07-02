@@ -1,52 +1,54 @@
 import random
 import time
 
-# Tes 50 user_ids initiaux (exemple)
+# Tes 50 user_ids modifiés
 user_ids_50 = [
-    249, 83, 7, 64, 101, 10, 103, 104, 17, 89,
-    567, 123, 5, 67, 98, 400, 12, 90, 65, 24,
-    302, 403, 205, 354, 306, 307, 305, 318, 408, 411,
-    420, 409, 415, 450, 451, 204, 321, 312, 209, 401,
-    402, 322, 301, 350, 410, 500, 501, 502, 503, 504
+    157, 92, 15, 73, 128, 19, 156, 198, 26, 94,
+    612, 187, 8, 81, 117, 445, 23, 103, 79, 31,
+    389, 467, 278, 391, 334, 376, 398, 356, 478, 489,
+    501, 456, 482, 523, 547, 267, 365, 349, 234, 434,
+    443, 378, 325, 402, 467, 578, 589, 601, 612, 634
 ]
 
-# Tes 40 article_ids initiaux (exemple)
+# Tes 40 article_ids modifiés
 article_ids_40 = [
-    1087, 1134, 1231, 1042, 1088, 1135, 1232, 1043, 1564, 1897,
-    1356, 1110, 1450, 1150, 1175, 1200, 1225, 1300, 1325, 1340,
-    1360, 1380, 1400, 1420, 1440, 1460, 1480, 1500, 1520, 1540,
-    1550, 1570, 1580, 1590, 1600, 1610, 1620, 1630, 1640, 1650
+    1156, 1203, 1298, 1089, 1167, 1214, 1301, 1078, 1643, 1976,
+    1423, 1189, 1534, 1234, 1259, 1284, 1309, 1378, 1403, 1428,
+    1445, 1467, 1489, 1512, 1534, 1556, 1578, 1612, 1634, 1656,
+    1678, 1698, 1719, 1742, 1763, 1784, 1806, 1827, 1848, 1869
 ]
 
-# Tes 25 catégories initiales (exemple)
+# Tes 25 catégories modifiées
 categories_25 = [
-    21, 34, 43, 32, 22, 35, 44, 50, 20, 33,
-    47, 36, 40, 23, 25, 27, 29, 31, 37, 39,
-    41, 42, 45, 46, 48
+    28, 41, 52, 39, 29, 42, 53, 61, 27, 40,
+    54, 43, 47, 30, 32, 34, 36, 38, 44, 46,
+    48, 49, 52, 53, 55
 ]
 
-def random_timestamp(start_year=2019, end_year=2023):
+def random_timestamp(start_year=2020, end_year=2024):
     start = time.mktime(time.strptime(f'1 Jan {start_year}', '%d %b %Y'))
     end = time.mktime(time.strptime(f'31 Dec {end_year}', '%d %b %Y'))
     return int(random.randint(start, end))
 
-def generate_transactions(n=1000, filename="transactions.txt"):
+def generate_transactions(n=1500, filename="transactions.txt"):
     with open(filename, "w") as f:
         for _ in range(n):
             user = random.choice(user_ids_50)
             article = random.choice(article_ids_40)
             category = random.choice(categories_25)
-            rating = round(random.uniform(1.5, 5.0), 1)
+            rating = round(random.uniform(1.0, 5.0), 1)
             timestamp = random_timestamp()
             f.write(f"{user} {article} {category} {rating} {timestamp}\n")
 
 def generate_user_counts(filename="user_counts.txt"):
     with open(filename, "w") as f:
         for user_id in user_ids_50:
-            count = random.randint(1, 60)
+            count = random.randint(5, 85)
             f.write(f"{user_id};{count}\n")
 
 if __name__ == "__main__":
-    generate_transactions(1000)
+    generate_transactions(3000)
     generate_user_counts()
-
+    print("Fichiers générés avec succès !")
+    print("- transactions.txt (1500 transactions)")
+    print("- user_counts.txt (50 utilisateurs)")

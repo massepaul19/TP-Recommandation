@@ -459,38 +459,7 @@ char* traiter_recommandation_matricielle(int id_user, int nb_reco) {
     return buffer;
 }
 
-/*
-void nettoyer_memoire_matricielle() {
-    // Cette fonction serait implémentée si on avait des variables globales à nettoyer
-}
-*/
 
-/*
-void demander_id_et_recommandations( int* id_user, int* nb_reco) {
-    
-    MatriceComplete* matrice_complete;
-    
-    if (!matrice_complete) {
-        printf("Erreur : matrice complète non initialisée.\n");
-        *id_user = -1;
-        *nb_reco = -1;
-        return;
-    }
-
-    printf("\nEntrez l'ID de l'utilisateur (0-%d): ", matrice_complete->M - 1);
-    while (scanf("%d", id_user) != 1 || *id_user < 0 || *id_user >= matrice_complete->M) {
-        printf("ID invalide. Veuillez entrer un nombre entre 0 et %d: ", matrice_complete->M - 1);
-        while (getchar() != '\n'); // Vide le buffer
-    }
-
-    printf("Entrez le nombre de recommandations à générer: ");
-    while (scanf("%d", nb_reco) != 1 || *nb_reco <= 0) {
-        printf("Nombre invalide. Veuillez entrer un nombre positif : ");
-        while (getchar() != '\n'); // Vide le buffer
-    }
-}
-
-*/
 
 void demander_id_et_recommandations(MatriceComplete* matrice_complete , int* id_user, int* nb_reco) {
     if (!matrice_complete) {
@@ -512,83 +481,90 @@ void demander_id_et_recommandations(MatriceComplete* matrice_complete , int* id_
         while (getchar() != '\n'); // Vide le buffer
     }
 }
-/*
-char* traiter_recommandation_matricielle(int id_user, int nb_reco) {
-    
-    static char buffer[2048];
+
+
+//###############################################################################
+//------------------- VERSION FACTORISATION SEULEMENT --------------------------
+
+char* traiter_recommandation_factorisation(int id_user, int nb_reco) {
+    static char resultat[1024];
+    resultat[0] = '\0';
+    Transaction* train_data = NULL;
+    int nb_train = 0;
+
+    // Étape 1 : Charger les données
+    train_data = lire_fichier_train("Train.txt", &nb_train);
+    if (!train_data || nb_train == 0) {
+        snprintf(resultat, sizeof(resultat), "ERREUR: Chargement des données impossible.\n");
+        return resultat;
+    }
+    printf("[INFO] Données chargées : %d transactions.\n", nb_train);
+
+    // Étape 2 : Calcul des dimensions
+    int M = 0, N = 0;
+    for (int i = 0; i < nb_train; i++) {
+        if (train_data[i].id_user > M) M = train_data[i].id_user;
+        if (train_data[i].id_article > N) N = train_data[i].id_article;
+    }
+    M++; N++;
+
+    // Étape 3 : Entraîner le modèle
+    if (matrice_complete) {
+        liberer_matrice_complete(matrice_complete);
+        matrice_complete = NULL;
+    }
+
+    int K = 10;
+    double alpha = 0.01;
+    double lambda = 0.02;
+    int nb_iterations = 100;
+
+    printf("[INFO] Début de l'entraînement...\n");
+    matrice_complete = MF(train_data, nb_train, M, N, K, alpha, lambda, nb_iterations);
     if (!matrice_complete) {
-        snprintf(buffer, sizeof(buffer), "Erreur: Matrice de recommandation non initialisée");
-        return buffer;
+        snprintf(resultat, sizeof(resultat), "ERREUR: Entraînement du modèle échoué.\n");
+        free(train_data);
+        return resultat;
     }
+    printf("[INFO] Modèle entraîné avec succès.\n");
 
-    // Vérification des limites
+    // Étape 4 : Générer recommandations
     if (id_user < 0 || id_user >= matrice_complete->M) {
-        snprintf(buffer, sizeof(buffer), "Erreur: ID utilisateur invalide (doit être entre 0 et %d)", matrice_complete->M - 1);
-        return buffer;
+        snprintf(resultat, sizeof(resultat), "ERREUR: ID utilisateur %d invalide.\n", id_user);
+        free(train_data);
+        return resultat;
     }
 
-    if (nb_reco <= 0) {
-        snprintf(buffer, sizeof(buffer), "Erreur: Nombre de recommandations doit être positif");
-        return buffer;
+    double* scores = malloc(matrice_complete->N * sizeof(double));
+    if (!scores) {
+        snprintf(resultat, sizeof(resultat), "ERREUR: Mémoire insuffisante pour scores.\n");
+        free(train_data);
+        return resultat;
     }
 
-    // Marquer les articles déjà évalués
-    int* deja_evalues = calloc(matrice_complete->N, sizeof(int));
-    for (int i = 0; train_data && i < nb_train; i++) {
-        if (train_data[i].id_user == id_user) {
-            deja_evalues[train_data[i].id_article] = 1;
-        }
+    for (int i = 0; i < matrice_complete->N; i++) {
+        scores[i] = matrice_complete->matrice[id_user][i];
     }
 
-    // Structure pour stocker les recommandations
-    typedef struct {
-        int item_id;
-        double score;
-    } Recommandation;
-
-    Recommandation* recs = malloc(matrice_complete->N * sizeof(Recommandation));
-    int nb_recs_disponibles = 0;
-
-    // Collecter les scores pour les articles non évalués
-    for (int j = 0; j < matrice_complete->N; j++) {
-        if (!deja_evalues[j]) {
-            recs[nb_recs_disponibles].item_id = j;
-            recs[nb_recs_disponibles].score = matrice_complete->matrice[id_user][j];
-            nb_recs_disponibles++;
-        }
-    }
-
-    // Tri par score décroissant (tri à bulles simple)
-    for (int i = 0; i < nb_recs_disponibles - 1; i++) {
-        for (int j = 0; j < nb_recs_disponibles - i - 1; j++) {
-            if (recs[j].score < recs[j + 1].score) {
-                Recommandation temp = recs[j];
-                recs[j] = recs[j + 1];
-                recs[j + 1] = temp;
+    for (int r = 0; r < nb_reco; r++) {
+        int best_idx = -1;
+        double best_score = -1e9;
+        for (int i = 0; i < matrice_complete->N; i++) {
+            if (scores[i] > best_score) {
+                best_score = scores[i];
+                best_idx = i;
             }
         }
-    }
-
-    // Génération du résultat
-    int offset = snprintf(buffer, sizeof(buffer), 
-                 "=== Top %d recommandations pour l'utilisateur %d ===\n",
-                 nb_reco, id_user);
-
-    int nb_a_afficher = nb_reco < nb_recs_disponibles ? nb_reco : nb_recs_disponibles;
-    
-    if (nb_a_afficher == 0) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset,
-                         "Aucune recommandation disponible.\n");
-    } else {
-        for (int i = 0; i < nb_a_afficher; i++) {
-            offset += snprintf(buffer + offset, sizeof(buffer) - offset,
-                             "%d. Article %d (score: %.4f)\n",
-                             i + 1, recs[i].item_id, recs[i].score);
+        if (best_idx >= 0) {
+            char ligne[128];
+            snprintf(ligne, sizeof(ligne), "Article %d - score %.3f\n", best_idx, best_score);
+            strncat(resultat, ligne, sizeof(resultat) - strlen(resultat) - 1);
+            scores[best_idx] = -1e9;
         }
     }
 
-    free(deja_evalues);
-    free(recs);
-    return buffer;
+    free(scores);
+    free(train_data);
+    return resultat;
 }
-*/
+

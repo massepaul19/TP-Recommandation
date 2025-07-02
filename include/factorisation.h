@@ -65,12 +65,12 @@ void diviser_donnees(Transaction* transactions, int nb_total,
                     double ratio_train);
 void evaluer_predictions(double* predictions, Transaction* test_data, int nb_test);
 
+void demander_id_et_recommandations(MatriceComplete* , int* id_user, int* nb_reco);
+
+char* traiter_recommandation_factorisation(int id_user, int nb_reco);
 // Nettoyage
 void nettoyer_memoire_matricielle(void);
 
-char* traiter_recommandation_matricielle(int id_user, int nb_reco);
-//void demander_id_et_recommandations(int* id_user, int* nb_reco);
-//void demander_id_et_recommandations(int* id_user, int* nb_reco);
-void demander_id_et_recommandations(MatriceComplete* matrice_complete , int* id_user, int* nb_reco);
+//char* traiter_recommandation_factorisation(int id_user, int nb_reco);
 
 #endif

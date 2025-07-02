@@ -639,9 +639,9 @@ void Menu_GRAPHE() {
 		    printf("\nTest automatisation - Lancement du calcul...\n");
 		    char *resultat = traiter_recommandation_graphe(id_user_test, nb_reco_test);
 		    printf("Recommandations générées :\n%s\n", resultat);
-	    break;
+	    break;	    
 	    }
-
+	    
 	    case 0:
                 printf("Nettoyage mémoire...\n");
                 if (graphe.matrice_adjacence) {
@@ -727,6 +727,7 @@ void afficher_menu() {
     printf("3. Entraîner le modèle de factorisation matricielle\n");
     printf("4. Tester le système matriciel\n");
     printf("5. Évaluer le système complet\n");
+    printf("6. Automatisation et Recommandation\n");
     printf("0. Quitter\n");
     printf("============================================================\n");
 }
@@ -772,6 +773,7 @@ void evaluer_systeme_complet() {
     free(train_subset);
     free(test_subset);
 }
+
 
 void Menu_Factorisation() {
     int choix;
@@ -847,6 +849,19 @@ void Menu_Factorisation() {
             case 5: // Évaluer système
                 evaluer_systeme_complet();
                 break;
+            
+            
+	    case 6:
+            	    unsigned int id_user , nb_reco;
+            	    
+		    printf("Entrer l'ID Utilisateur: ");
+		    scanf("%d", &id_user);
+		    printf("Nombre de recommandations: ");
+		    scanf("%d", &nb_reco);
+		    char* resultat =  traiter_recommandation_factorisation(id_user, nb_reco);
+		    printf("\n%s\n", resultat);
+            break;
+
                 
             case 0: // Quitter
                 printf("Nettoyage de la mémoire...\n");

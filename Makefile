@@ -168,6 +168,9 @@ rundyn: bin/rundyn
 	LD_LIBRARY_PATH=./lib ./bin/rundyn
 
 
+lib_biblio = lib/libreco_KNN.so lib/libGraphe.so lib/libFactorisation.so  	#permet de regrouper toutes les bibliothèques
+link_biblio = -lreco_KNN -lGraphe -lFactorisation				#je les trasforme en un seul lien
+
 #------------------------------------------------------------------------------
 #----------------- BLOC POUR GERER LES CLIENTS ET LES SERVEURS ----------------
 #------------------------------------------------------------------------------
@@ -177,9 +180,9 @@ rundyn: bin/rundyn
 # ----------------------------------------------------
 # ========== Démarrage Côté serveur ==================
 # ----------------------------------------------------
-bin/serveur: network/serveur.c network/src/fonctions_serveur.c lib/librecommantion.so
+bin/serveur: network/serveur.c network/src/fonctions_serveur.c $(lib_biblio)
 	@mkdir -p bin
-	$(CC) network/serveur.c network/src/fonctions_serveur.c -o bin/serveur -Iinclude -Inetwork/include -Llib -lrecommantion $(ALERT) $(REP_stan)
+	$(CC) network/serveur.c network/src/fonctions_serveur.c -o bin/serveur -Iinclude -Inetwork/include -Llib $(link_biblio) $(ALERT) $(REP_stan)
 
 serveur: bin/serveur
 	@echo "Démarrage du serveur..."
