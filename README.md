@@ -4,8 +4,8 @@ Un système de recommandation complet implémenté en C, utilisant l'algorithme 
 
 ## Par rapport au systeme 
 
-Ici nous avonc choisi d'implementer 02 tests : 
-- le test en localhost : qui consiste au client et au serveurd'être dans une même machine et de fonctionner enseemble
+Ici nous avons choisi d'implementer 02 tests : 
+- le test en localhost : qui consiste au client et au serveur d'être dans une même machine et de fonctionner ensemble
 - le test en résau : ici nous utilisons le point d'acces pour mettre les machines (serveur + les clients ) en réseau et au préalable nous lançons l'execution côté client sur les machines clientes et nous démarrons le serveur
 
 ###Gestion des erreurs et conflits : acces à la ressource par plusieurs clients
@@ -27,6 +27,7 @@ help:
 	@echo 'make run           - Executer le programme'
 	@echo 'make runstatic     - Executer avec Biblio statique'
 	@echo 'make rundyn        - Executer avec Biblio dynamique'
+	@echo 'make rundynessai   - Executer avec 03 Biblios dynamique'
 	@echo 'make serveur       - Demarrer avec le serveur'
 	@echo 'make stop-serveur  - Arrêter le serveur'
 	@echo 'make client        - Demarrer côté client'
@@ -176,7 +177,7 @@ Options :
 0. Nettoyer la mémoire et quitter
 
 
-1. Traitement et gestion des données                        ║
+1. Traitement et gestion des données                           ║
 ║  2. Extraction de données vers Train                         ║
 ║  3. Système de recommandation KNN                            ║
 ║  4. Système de recommandation Factorisation Matricielle      ║

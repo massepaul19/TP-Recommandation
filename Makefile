@@ -221,7 +221,7 @@ adresse:
 # -------------------------------------------
 clean:
 	@echo "Nettoyage des fichiers générés..."
-	rm -f ./obj/*.o ./bin/$(EXEC) bin/runstatic bin/rundyn bin/serveur bin/client lib/*.a lib/*.so
+	rm -f ./obj/*.o ./bin/$(EXEC) bin/runstatic bin/rundyn bin/serveur bin/client bin/rundynessai lib/*.a lib/*.so
 	@echo "Nettoyage terminé"
 
 ###########################################################

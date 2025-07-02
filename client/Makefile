@@ -1,8 +1,8 @@
-#Démarrage
-# Declaration des variables
-CISSE = gcc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+# Démarrage
+# Déclaration des variables
+CC = gcc
 EXEC = cisse.out
-ALERT = -Wall - Wextra - Werror
+ALERT = -Wall -Wextra -Werror
 
 # ----------------------------------------------------
 # ==============  Démarrage Côté client ==============
