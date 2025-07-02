@@ -12,8 +12,8 @@
 
 int main(int argc, char* argv[]) {
     client_connection_t client;
-    char server_ip[16] = IP_SERVEUR; 
-    //char server_ip[16] = IP_SERVEUR_LOCAL;
+    //char server_ip[16] = IP_SERVEUR;     //ici je c'est l'adresse que mon ap me délivre dans pour mon serveur
+    char server_ip[16] = IP_SERVEUR_LOCAL; //pour tester en local 
     int server_port = PORT;                 
     
     afficher_Masse_client();
