@@ -185,7 +185,7 @@ typedef struct {
 ### Structure par rapport au client serveur
 
 structure pour gerer le CLIENT
-```
+```c
 typedef struct {
     int socket_fd;
     struct sockaddr_in server_addr;
@@ -193,13 +193,15 @@ typedef struct {
 ```
 
 SERVEUR
-```
+
+```c
 extern pthread_mutex_t mutex_recommandeur;  #me permet de gerer la connexion simultanée de plusieurs clients
 ```
 ## A Propos
 
 ### MENU PRINCIPAL CÔTE SERVEUR
 
+```c
 ╔══════════════════════════════════════════════════════════════╗
 ║                   SYSTÈME DE RECOMMANDATION                  ║
 ║                         Version 1.0                          ║
@@ -215,9 +217,10 @@ extern pthread_mutex_t mutex_recommandeur;  #me permet de gerer la connexion sim
 ║  0. Quitter le programme                                     ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
-
+```
 ### About
 
+```c
 ═=═════════════════════════════════════════════════════════════╗
 ║                      À PROPOS DU SYSTÈME                     ║
 ╠══════════════════════════════════════════════════════════════╣
@@ -252,7 +255,7 @@ extern pthread_mutex_t mutex_recommandeur;  #me permet de gerer la connexion sim
 ║                                                              ║
 ║                                             Paulo Masse      ║
 ╚══════════════════════════════════════════════════════════════╝
-
+```
 ##Fonctionnalités
 
 ### Fonctionnalités de Traitement
@@ -395,7 +398,7 @@ id_user id_article note_reelle note_predite confiance
 
 ## 5. STRUCTURE DU PROJET
 
-```
+```c
 .
 ├── bin/                        # Exécutables compilés
 │   ├── cisse.out              		# Exécutable principal
