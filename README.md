@@ -525,17 +525,5 @@ $(EXEC): $(DOSSIER_OBJET)     # Compile l'exécutable principal
 ```makefile
 bin/serveur                   # Serveur de recommandation
 bin/client                    # Client réseau
-```
 
-make               # Compiler tout le programme
-make run           # Exécuter le programme
-make runstatic     # Exécuter avec bibliothèque statique
-make rundyn        # Exécuter avec bibliothèque dynamique
-make rundynessai   # Exécuter avec 3 bibliothèques dynamiques
-make serveur       # Démarrer le serveur
-make stop-serveur  # Arrêter le serveur
-make client        # Démarrer le client
-make adresse       # Voir les adresses disponibles
-make clean         # Nettoyage des fichiers
-make efface        # Nettoyage du terminal
-make genere        # Générer vos propres transactions
+
