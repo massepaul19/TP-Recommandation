@@ -13,7 +13,7 @@ void afficher_menu_principal();
 // ========== Fonction pour afficher les menus ==========
 
 void Menu_Traitement();
-void Menu_KNN(const char* train_file, const char* test_file);
+void Menu_KNN(const char* train_file);
 void Menu_GRAPHE();;
 
 // ========= Extraction des données vers Train ==========

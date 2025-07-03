@@ -1,12 +1,39 @@
-# RECOMMANDATION
+#----------------------------------------------------------------
+#  --------------------  TP RECOMMANDATION ----------------------
+## --------------- MASSE MASSE Paul - Basthylle -----------------
+#----------------------------------------------------------------
 
-Un système de recommandation complet implémenté en C, utilisant l'algorithme des k plus proches voisins (KNN) avec la corrélation de Pearson pour prédire les préférences des utilisateurs.
+
+#--------------------------------------------------------------------------------------
+#  ------  TP RECOMMANDATION Explication claires des étapes et des structures ---------
+#--------------------------------------------------------------------------------------
+
+Un système de recommandation complet implémenté en C, utilisant les algorithmes des k plus proches voisins (KNN) avec la corrélation de Pearson pour prédire les préférences des utilisateurs, la Factorisation Matricielle et le Page Rank avec les Graphes bipartis.
 
 ## Par rapport au systeme 
 
 Ici nous avons choisi d'implementer 02 tests : 
 - le test en localhost : qui consiste au client et au serveur d'être dans une même machine et de fonctionner ensemble
 - le test en résau : ici nous utilisons le point d'acces pour mettre les machines (serveur + les clients ) en réseau et au préalable nous lançons l'execution côté client sur les machines clientes et nous démarrons le serveur
+
+Pour tester en Réseau, Allez dans network, créer un dossier client et copiez les fichiers qui concernent le client:
+c'est-à-dire:
+copiez src/fonctions.client.c , include/fonctions.client.h et client.c dans la dossier que vous allez partager
+dans ce nouveau dossier ouvrez le fichier client.c remplacer par l'ip que votre AP vous à fourni dans le premier define
+
+Ex: voici mon adresse #define IP_SERVEUR "192.168.43.71" celle que mon AP m'offre changez la par la votre
+
+NB: juste en bas il y'a le main rassurer vous d'avoir juste commenter le cas du localhost
+Ex ici :
+
+ligne 16
+
+char server_ip[16] = IP_SERVEUR;         //ici je c'est l'adresse que mon ap me délivre pour mon serveur
+//char server_ip[16] = IP_SERVEUR_LOCAL; //pour tester en local 
+
+avant taper: make adresse : elle va fournir vos adresses et copier alors celle attribuée par l'AP
+
+puis donner le dossier aux clients externes connectés à votre AP et qu'ils éxécutent.
 
 ###Gestion des erreurs et conflits : acces à la ressource par plusieurs clients
 
@@ -34,6 +61,7 @@ help:
 	@echo 'make adresse       - Voir les adresses disponibles'
 	@echo 'make clean         - Nettoyage des fichiers'
 	@echo 'make efface        - Nettoyage du terminal'
+	@echo 'make genere        - Générer vos propres Transactions'
 
 
 ### Structure des Données
@@ -109,6 +137,27 @@ typedef struct {
 
 ```
 
+/ Structure pour gerer la factorisation matricielle
+```
+typedef struct {
+    double **U;         // Matrice des utilisateurs (M x K)
+    double **V;         // Matrice des items (N x K)
+    double *bias_u;     // Biais utilisateurs
+    double *bias_v;     // Biais items
+    double bias_global; // Biais global
+    int M;              // Nombre d'utilisateurs
+    int N;              // Nombre d'articles
+    int K;              // Nombre de facteurs latents
+} MatriceFactorisation;
+
+// Matrice complète
+typedef struct {
+    double **matrice;  // Matrice des notes M x N
+    int M;             // Nombre d'utilisateurs
+    int N;             // Nombre d'articles
+} MatriceComplete;
+```
+
 structure pour gerer GRAPHE
 ```
 typedef struct {
@@ -133,6 +182,74 @@ typedef struct {
 
 ### Structure par rapport au client serveur
 
+structure pour gerer le CLIENT
+```
+typedef struct {
+    int socket_fd;
+    struct sockaddr_in server_addr;
+} client_connection_t;
+```
+
+SERVEUR
+```
+extern pthread_mutex_t mutex_recommandeur;  #me permet de gerer la connexion simultanée de plusieurs clients
+```
+## A Propos
+
+### MENU PRINCIPAL CÔTE SERVEUR
+
+╔══════════════════════════════════════════════════════════════╗
+║                   SYSTÈME DE RECOMMANDATION                  ║
+║                         Version 1.0                          ║
+║                MASSE MASSE PAUL - BASTHYLLE                  ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║  1. Traitement et gestion des données                        ║
+║  2. Extraction de données vers Train                         ║
+║  3. Système de recommandation KNN                            ║
+║  4. Système de recommandation Factorisation Matricielle      ║
+║  5. Système de recommandation avec Graphes                   ║
+║  6. À propos du système                                      ║
+║  0. Quitter le programme                                     ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+### About
+
+═=═════════════════════════════════════════════════════════════╗
+║                      À PROPOS DU SYSTÈME                     ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║  Système de Recommandation - Version 1.0                     ║
+║  Utilise l'algorithme K-Nearest Neighbors (KNN) ,            ║
+║  Factorisation Matricielle et Pae Rank                       ║
+║  pour fournir des recommandations personnalisées             ║
+║                                                              ║
+║  Fonctionnalités :                                           ║
+║  • Traitement et gestion des données                         ║
+║  • Algorithme pour les recommandations                       ║
+║  • Génération des Transactions                               ║
+║  • Interface utilisateur intuitive                           ║
+║                                                              ║
+║  Methodes de Recommandations :                               ║
+║  • Algorithme Facto. Matricielle pour les recommandations    ║
+║  • Algorithme KNN pour les recommandations                   ║
+║  • Algorithme Page Rank avec les Graphes                     ║
+║                                                              ║
+║  Connexion Client serveur :                                  ║
+║  • Grace aux sockets et aux threads nous avons la possibilité║
+║  d'avoir un serveur et plusieurs clints connectés            ║
+║                                                              ║
+║  Côté Réseau :                                 	       ║
+║   Notre app offre une facilité d'adaptation au               ║
+║   réseau pour les tests:                                     ║
+║  d'avoir un serveur et plusieurs clints connectés            ║
+║                                                              ║
+║  	• Option 1 : Localhost avec 127.0.0.1                  ║
+║  	• Option 2 : Grace à un AP (en réseau)                 ║
+║                                                              ║
+║                                             Paulo Masse      ║
+╚══════════════════════════════════════════════════════════════╝
 
 ##Fonctionnalités
 
@@ -147,7 +264,8 @@ typedef struct {
 0. Retour au menu principal
 
 ### Fonctionnalités extraction
-
+cette option permet de recuperer une partie des données et les mettre dans un autre fichier Train.txt afin de ne pas tester avec toutes nos données qui sont prêt de 6000 transactions.
+Ici l'user entre la zone de selection (ligne de début et celle de la fin)
 
 ###Système de recommandation KNN
 
@@ -158,11 +276,19 @@ Options :
 4. Évaluer les performances
 5. Sauvegarder les résultats
 6. Afficher les statistiques
+7. Test d'automatisation des calculs(Etapes)
+0. Menu principal
 
 
 ###Système de recommandation Factorisation Matricielle
 
-
+1. Charger les données d'entraînement
+2. Afficher les statistiques des données
+3. Entraîner le modèle de factorisation matricielle
+4. Tester le système matriciel
+5. Évaluer le système complet
+6. Automatisation et Recommandation
+0. Quitter
 
 ###Système de recommandation avec Graphes
 
@@ -174,16 +300,8 @@ Options :
 3. Appliquer PageRank
 4. Sauvegarder les résultats PageRank
 5. Afficher exemple de recommandations
+6. Test d'automatisation des calculs(Etapes)
 0. Nettoyer la mémoire et quitter
-
-
-1. Traitement et gestion des données                           ║
-║  2. Extraction de données vers Train                         ║
-║  3. Système de recommandation KNN                            ║
-║  4. Système de recommandation Factorisation Matricielle      ║
-║  5. Système de recommandation avec Graphes                   ║
-║  6. À propos du système                                      ║
-║  0. Quitter le programme 
 
 ### Fichiers de Traitement
 
@@ -193,88 +311,10 @@ Options :
 - `src/Algo_recommandation.c` : Implémentation des algorithmes KNN
 - Limites : `MAX_USERS = 50`, `MAX_ARTICLES = 50`, `MAX_CATEGORIES = 50`
 
-## 2. RECOMMANDATION KNN
+## UTILISATION
 
-### Principe de l'Algorithme
-
-L'algorithme KNN (k-Nearest Neighbors) pour la recommandation fonctionne en trois étapes :
-
-1. **Calcul de similarité** : Mesure la similitude entre utilisateurs
-2. **Sélection des voisins** : Identifie les k utilisateurs les plus similaires
-3. **Prédiction** : Estime les notes basées sur les préférences des voisins
-
-### Structure Principale
-
-```c
-typedef struct {
-    User users[MAX_USERS];
-    Article articles[MAX_ARTICLES];
-    Transaction transactions[MAX_USERS * MAX_ARTICLES];
-    
-    int nb_users;
-    int nb_articles;
-    int nb_transactions;
-    
-    float matrice_evaluations[MAX_USERS][MAX_ARTICLES];
-    double matrice_similarite[MAX_USERS][MAX_USERS];
-    double moyenne_utilisateur[MAX_USERS];
-    
-    int k;  // Nombre de voisins
-} RecommandeurKNN;
-```
-
-### Trois Tâches Principales
-
-#### 🎯 **TÂCHE 1 : Pearson(train-data)**
-```c
-double** Pearson(const char* filename);
-```
-- **Entrée** : Fichier de données d'entraînement
-- **Sortie** : Matrice carrée de similarité entre utilisateurs
-- **Objectif** : Construire le modèle de recommandation
-
-**Processus :**
-1. Chargement des transactions d'entraînement
-2. Construction de la matrice utilisateur-article
-3. Calcul des moyennes par utilisateur
-4. Calcul de la corrélation de Pearson entre tous les utilisateurs
-
-**Formule de Pearson :**
-```
-Pearson(u,v) = Σ(rui - r̄u)(rvi - r̄v) / √[Σ(rui - r̄u)² × Σ(rvi - r̄v)²]
-```
-
-#### 🎯 **TÂCHE 2 : Predict(ui)**
-```c
-float Predict(RecommandeurKNN* rec, unsigned int id_user, unsigned int id_article);
-```
-- **Entrée** : ID utilisateur et ID article
-- **Sortie** : Note prédite pour cet utilisateur sur cet article
-- **Objectif** : Prédiction individuelle
-
-**Processus :**
-1. Identification des k voisins les plus similaires
-2. Sélection des voisins ayant noté l'article
-3. Calcul de la prédiction pondérée par la similarité
-
-**Formule de prédiction :**
-```
-P(u,i) = r̄u + Σ(sim(u,v) × (rvi - r̄v)) / Σ|sim(u,v)|
-```
-
-#### 🎯 **TÂCHE 3 : Predict-all(test-data)**
-```c
-int Predict_all(RecommandeurKNN* rec, const char* test_filename, 
-                Prediction predictions[], int max_predictions);
-```
-- **Entrée** : Fichier de données de test
-- **Sortie** : Ensemble de toutes les prédictions
-- **Objectif** : Évaluation complète du modèle
-
-**Métriques d'évaluation :**
-- **RMSE** : `√(Σ(prédite - réelle)² / n)`
-- **MAE** : `Σ|prédite - réelle| / n`
-- **Précision** : Pourcentage de prédictions dans une marge d'erreur
+Pour les trois algorithmes, veuillez suivre les étapes en ordre
+Autre tester directement les recommandations au dernier point de chaque menu concu pour automatiser toutes les autres etapes
 
 ### Structures Auxiliaires
 
@@ -295,44 +335,54 @@ typedef struct {
 
 ## 3. UTILISATION
 
-### Compilation
+### Modes d'exécution
 
-Le projet utilise un Makefile pour la compilation :
-
+**Pour les tests locaux (sans réseau) :**
 ```bash
-# Compilation complète
-make
-
-# Compilation version statique
-make static
-
-# Compilation version dynamique  
-make dynamic
-
-# Nettoyage
-make clean
-
-# Exécution
-./bin/cisse.out
+make run         # Version standard
+make runstatic   # Avec bibliothèque statique
+make rundyn      # Avec bibliothèque dynamique
+make rundynessai # Avec 3 bibliothèques séparées
 ```
 
-### Bibliothèques Disponibles
+**Pour le mode client-serveur :**
+```bash
+make serveur     # Démarre le serveur
+make client      # Démarre le client
+```
 
-Au choix.
-- **libreco.a** : Bibliothèque statique contenant les fonctions de traitement
-- **libreco.so** : Bibliothèque dynamique pour une utilisation modulaire
+### Bibliothèques disponibles
 
-Pour des tests sans le serveur ni  client, nous avons proposé à l'utilisateur 03 méthodes d'éxécution 
-Mais, dans le cadre du serveur et client nous avons utilisé la bibliotheque dynamique
-Pourquoi ? parcequ'elle consomme moins et elle est chargée à l'éxécution ce qui nous fait un gain
+- **librecommantion.a** : Bibliothèque statique (intégrée au moment de la compilation)
+- **librecommantion.so** : Bibliothèque dynamique principale (chargée à l'exécution)
+- **Bibliothèques spécialisées** :
+  - `libreco_KNN.so` : Algorithme KNN
+  - `libGraphe.so` : Recommandations par graphes
+  - `libFactorisation.so` : Factorisation matricielle
 
-### Exemple d'Utilisation Complète
+### Choix de la bibliothèque dynamique
 
-#
+Pour le système client-serveur, nous utilisons les bibliothèques dynamiques car :
+- **Consommation réduite** : Code partagé entre processus
+- **Chargement à l'exécution** : Optimise l'utilisation mémoire
+- **Modularité** : Permet de charger seulement les algorithmes nécessaires
+
+### Utilisation des algorithmes
+
+**Important :** Pour chaque algorithme (KNN, Graphes, Factorisation) :
+1. Suivre **pas à pas** chaque étape du menu
+2. **OU** utiliser la dernière option qui automatise toutes les étapes et fournit directement les recommandations
+
+### Génération de données
+
+```bash
+make genere      # Génère des transactions de test
+make adresse     # Affiche les adresses réseau disponibles
+```
 
 ## 4. FORMAT DES DONNÉES
 
-### Fichier de Transactions (data/essai/Train.txt, Test.txt , data/données.txt)
+### Fichier de Transactions (data/essai/Train.txt, Train.txt , data/données.txt)
 ```
 id_user id_article id_categorie evaluation timestamp
 1       101        5           4.5        1609459200.0
@@ -358,158 +408,96 @@ id_user id_article note_reelle note_predite confiance
 2       104        3.5         3.2          0.72
 ```
 
-## 5. PARAMÈTRES ET CONFIGURATION
-
-### Paramètres Principaux
-- **k** : Nombre de voisins (recommandé : 5-20)
-- **Seuil de similarité** : Minimum pour considérer un voisin
-- **Taille maximale** : Définie par les constantes MAX_*
-
-### Optimisations Possibles
-- **Filtrage préalable** : Suppression des utilisateurs/articles peu actifs
-- **Normalisation** : Centrage des notes par utilisateur
-- **Pondération temporelle** : Prise en compte de l'ancienneté des évaluations
-
-## 6. STRUCTURE DU PROJET
+## 5. STRUCTURE DU PROJET
 
 ```
 .
 ├── bin/                        # Exécutables compilés
-│   ├── cisse.out              # Exécutable principal
-│   ├── rundyn                 # Version dynamique
-│   └── runstatic              # Version statique
+│   ├── cisse.out              		# Exécutable principal
+│   ├── client                 		# Client réseau
+│   ├── serveur                		# Serveur réseau
+│   ├── rundyn                 		# Version dynamique
+│   ├── rundynessai            		# Version dynamique test avec les 03 bibio
+│   └── runstatic              		# Version statique
 ├── data/                      # Données du projet
-│   ├── Articles.txt           # Liste des articles
-│   ├── Categories.txt         # Liste des catégories
-│   ├── Users.txt              # Liste des utilisateurs
-│   ├── donnees.txt            # Données brutes complètes
+│   ├── Articles.txt           		# Liste des articles
+│   ├── Categories.txt         		# Liste des catégories
+│   ├── Users.txt              		# Liste des utilisateurs
+│   ├── donnees.txt            		# Données brutes complètes
 │   ├── transactions_filtrees.txt  # Données filtrées
 │   ├── transactions_t1-t2.txt     # Données par période
-│   └── essai/                 # Jeu de données d'essai
-│       ├── Train.txt          # Données d'entraînement
-│       ├── Test.txt           # Données de test
-│       └── Clean.txt          # Données nettoyées
-├── include/                   # Fichiers d'en-tête
-│   ├── reco.h                # Structures de base et traitement
-│   ├── Algo_recommandation.h # Interface KNN (vos 3 tâches)
-│   └── menu.h                # Interface utilisateur
-├── src/                      # Code source
-│   ├── reco.c                # Implémentation du traitement
-│   ├── Algo_recommandation.c # Implémentation KNN
-│   └── menu.c                # Interface utilisateur
-├── lib/                      # Bibliothèques
-│   ├── libreco.a             # Bibliothèque statique
-│   └── libreco.so            # Bibliothèque dynamique
-├── obj/                      # Fichiers objets compilés
-│   ├── main.o
-│   └── reco.o
-├── test/                     # Tests et programme principal
-│   └── main.c                # Point d'entrée du programme
-├── Makefile                  # Script de compilation
-└── TP3-INF 3621_Programmation Système.pdf  # Documentation du TP
+│   ├── essai/                 # Jeu de données d'essai Traitement des données
+│   │   ├── Clean.txt          		# Données nettoyées
+│   │   ├── Test.txt           		# Données de test
+│   │   └── Train.txt          		# Données d'entraînement
+│   └── KNN_TRAIN/             # Données pour KNN
+│       ├── resultats_predictions.txt   # Résultats des prédictions
+│       ├── Test.txt           		# Données de test en general
+│       └── Train.txt          		# Données d'entraînement en general et KNN aussi
+├── include/                   # Fichiers d'en-tête (déclarations)
+│   ├── factorisation.h        		# Déclarations factorisation matricielle
+│   ├── graphe.h               		# Déclarations graphes de recommandation
+│   ├── menu.h                 		# Déclarations interface utilisateur
+│   ├── reco.h                 		# Déclarations structures de base et traitement des données
+│   └── reco_KNN.h             		# Déclarations algorithme KNN
+├── src/                       # Code source 
+│   ├── factorisation.c        		# Implémentation factorisation
+│   ├── graphe.c               		# Implémentation graphes
+│   ├── menu.c                 		# Interface utilisateur
+│   ├── reco.c                 		# Implémentation traitement de base
+│   └── reco_KNN.c             		# Implémentation KNN
+├── lib/                       # Bibliothèques
+│   ├── libFactorisation.so    		# Bibliothèque dynamique factorisation
+│   ├── libGraphe.so           		# Bibliothèque dynamique graphes
+│   ├── libreco_KNN.so         		# Bibliothèque dynamique KNN
+│   ├── librecommantion.a      		# Bibliothèque statique principale
+│   └── librecommantion.so     		# Bibliothèque dynamique principale
+├── obj/                       # Fichiers objets compilés
+│   ├── factorisation.o       	 	# Objet factorisation
+│   ├── factorisation_pic.o    		# Objet factorisation (PIC)
+│   ├── graphe.o               		# Objet graphes
+│   ├── graphe_pic.o           		# Objet graphes (PIC)
+│   ├── main.o                 		# Objet principal
+│   ├── menu.o                 		# Objet menu
+│   ├── reco_KNN.o             		# Objet KNN
+│   ├── reco_KNN_pic.o         		# Objet KNN (PIC)
+│   ├── reco.o                 		# Objet recommandation
+│   └── reco_pic.o             		# Objet recommandation (PIC)
+├── network/                   	# Module réseau client-serveur
+│   ├── client.c               		# Client réseau
+│   ├── serveur.c              		# Serveur réseau
+│   ├── include/               		# En-têtes réseau (déclarations)
+│   │   ├── fonctions_client.h 		# Déclarations fonctions client
+│   │   └── fonctions_serveur.h 	# Déclarations fonctions serveur
+│   └── src/                   		# Sources réseau
+│       ├── fonctions_client.c 		# Implémentation client
+│       └── fonctions_serveur.c 	# Implémentation serveur
+├── test/                      	# Tests et programme principal
+│   └── main.c                 		# Point d'entrée du programme
+├── Images Exemples/           		# Screenshots et exemples
+│   ├── config_local.png      	        # Configuration localhost
+│   ├── config_pour_ap.png    	        # Configuration point d'accès
+│   ├── test_avec_ap.png       		# Test avec AP
+│   └── test_avec_localhost.png 	# Test en local
+├── Makefile                  	        # Script de compilation
+├── README.md                  		# Documentation du projet
+├── genere.py                  		# Script de génération de données
+├── données.txt               	        # Données supplémentaires
+├── Train.txt                  		# Données d'entraînement globales
+├── transactions_generées.txt  		# Données générées
+├── TP3-INF 3621_ Programmation Système.pdf  # Documentation TP sur le traitement des données
+└── Tp-recommandation_sockets.pdf            # Documentation sockets
 ```
-
-.
-├── bin
-│   ├── cisse.out
-│   ├── rundyn
-│   └── runstatic
-├── data
-│   ├── Articles.txt
-│   ├── Categories.txt
-│   ├── donnees.txt
-│   ├── essai
-│   │   ├── Clean.txt
-│   │   ├── Test.txt
-│   │   └── Train.txt
-│   ├── KNN_TRAIN
-│   │   ├── resultats_predictions.txt
-│   │   ├── Test.txt
-│   │   └── Train.txt
-│   ├── transactions_filtrees.txt
-│   ├── transactions_t1-t2.txt
-│   └── Users.txt
-├── données.txt
-├── genere.py
-├── include
-│   ├── factorisation.h
-│   ├── graphe.h
-│   ├── menu.h
-│   ├── reco.h
-│   └── reco_KNN.h
-├── lib
-│   ├── librecommantion.a
-│   └── librecommantion.so
-├── Makefile
-├── network
-│   ├── client.c
-│   ├── include
-│   │   ├── fonctions_client.h
-│   │   └── fonctions_serveur.h
-│   ├── serveur.c
-│   └── src
-│       ├── fonctions_client.c
-│       └── fonctions_serveur.c
-├── obj
-│   ├── graphe.o
-│   ├── graphe_pic.o
-│   ├── main.o
-│   ├── menu.o
-│   ├── reco_KNN.o
-│   ├── reco_KNN_pic.o
-│   ├── reco.o
-│   └── reco_pic.o
-├── pagerank_results.txt
-├── projet
-│   ├── include
-│   │   └── factorisation.h
-│   ├── Makefile
-│   ├── network
-│   │   ├── client.c
-│   │   ├── include
-│   │   │   ├── fonctions_client.h
-│   │   │   └── fonctions_serveur.h
-│   │   ├── serveur.c
-│   │   └── src
-│   │       ├── fonctions_client.c
-│   │       └── fonctions_serveur.c
-│   ├── src
-│   │   └── factorisation.c
-│   └── test
-│       └── main.c
-├── README.md
-├── reseau
-├── src
-│   ├── factorisation.c
-│   ├── graphe.c
-│   ├── menu.c
-│   ├── reco.c
-│   └── reco_KNN.c
-├── test
-│   └── main.c
-├── test.c
-├── Text.txt
-├── TP3-INF 3621_ Programmation Système.pdf
-├── Tp-recommandation_sockets.pdf
-└── Train.txt
-
-## 7. RÉFÉRENCES
-
-- **Algorithme KNN** : Collaborative Filtering Recommender Systems
-- **Corrélation de Pearson** : Mesure de similarité statistique
-- **Évaluation** : Métriques RMSE et MAE pour les systèmes de recommandation
-
----
 
 *Développé dans le cadre d'un projet de système de recommandation utilisant l'algorithme des k plus proches voisins avec corrélation de Pearson.*
 
-## 7. Structures : Pourquoi avons nous choisi celà ?
+## 6. Structures : Pourquoi avons nous choisi celà ?
 
-Dans le traitement, le code utilise une fonction ecriretransaction telle que lorsque quelles est appelées sur un fichier, celle si mets à jour tous les autres fichiers
+Dans le traitement, le code utilise une fonction ecrire_transaction est telle que lorsqu'elle est appelée sur un fichier, celle si mets à jour tous les autres fichiers
 
 Nous avons créé plusieurs autres fichiers adptés à notre structure afin de répondre plus facilement aux questions du traitement qui est la base de notre travail
 
-## Explication des fichiers objets
+### Explication des fichiers objets
 
 Nous avons respectivement 
 
@@ -519,3 +507,34 @@ OBJET_biblio_stac = ./obj/reco.o ./obj/reco_KNN.o ./obj/graphe.o //c'est pour la
 
 ## 7. Explication du Makefile
 
+### Variables de configuration
+```makefile
+CISSE = gcc                        # Compilateur
+EXEC = cisse.out                   # Nom de l'exécutable principal
+ALERT = -Wall -Werror -Wextra -lm  # Options de compilation strictes
+```
+
+NB: -lm me permet de lier la biblio math.h 
+mkdir -p me permet de creer un dossier s'il n'existe pas encore
+
+### Compilation principale
+```makefile
+all: $(EXEC)                  # Cible par défaut
+$(EXEC): $(DOSSIER_OBJET)     # Compile l'exécutable principal
+```
+
+### Compilation des objets
+- Chaque fichier `.c` est compilé en `.o` dans le dossier `obj/`
+- Inclut les algorithmes : KNN, graphes, factorisation
+- Crée les versions PIC (Position Independent Code) pour les bibliothèques dynamiques
+
+### Exécutables
+- `bin/runstatic` : Version avec bibliothèque statique
+- `bin/rundyn`    : Version avec bibliothèque dynamique
+- `bin/rundynessai` : Version avec 3 bibliothèques séparées
+
+### Réseau client-serveur
+```makefile
+bin/serveur                   # Serveur de recommandation
+bin/client                    # Client réseau
+```

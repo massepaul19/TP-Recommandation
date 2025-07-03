@@ -1037,7 +1037,7 @@ char* traiter_recommandation_knn(int id_user, int nb_reco) {
     
     // Initialisation du recommandeur KNN (une seule fois)
     if (!knn_initialise) {
-        rec = initialiser_recommandeur_depuis_fichier("Train.txt");
+        rec = initialiser_recommandeur_depuis_fichier("data/KNN_TRAIN/Train.txt");
         if (!rec) {
             snprintf(buffer, 2048, "Erreur : Impossible d'initialiser le recommandeur KNN.\n");
             return buffer;
@@ -1080,6 +1080,7 @@ char* traiter_recommandation_knn(int id_user, int nb_reco) {
     
     return buffer;
 }
+
 
 //###############################################################################
 

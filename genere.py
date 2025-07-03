@@ -2,6 +2,7 @@ import random
 import time
 
 # Tes 50 user_ids modifiés
+
 user_ids_50 = [
     157, 92, 15, 73, 128, 19, 156, 198, 26, 94,
     612, 187, 8, 81, 117, 445, 23, 103, 79, 31,
@@ -19,6 +20,7 @@ article_ids_40 = [
 ]
 
 # Tes 25 catégories modifiées
+
 categories_25 = [
     28, 41, 52, 39, 29, 42, 53, 61, 27, 40,
     54, 43, 47, 30, 32, 34, 36, 38, 44, 46,
@@ -30,7 +32,7 @@ def random_timestamp(start_year=2020, end_year=2024):
     end = time.mktime(time.strptime(f'31 Dec {end_year}', '%d %b %Y'))
     return int(random.randint(start, end))
 
-def generate_transactions(n=1500, filename="transactions.txt"):
+def generate_transactions(n=1500, filename="transactions_generées.txt"):
     with open(filename, "w") as f:
         for _ in range(n):
             user = random.choice(user_ids_50)
@@ -40,15 +42,9 @@ def generate_transactions(n=1500, filename="transactions.txt"):
             timestamp = random_timestamp()
             f.write(f"{user} {article} {category} {rating} {timestamp}\n")
 
-def generate_user_counts(filename="user_counts.txt"):
-    with open(filename, "w") as f:
-        for user_id in user_ids_50:
-            count = random.randint(5, 85)
-            f.write(f"{user_id};{count}\n")
-
 if __name__ == "__main__":
     generate_transactions(3000)
-    generate_user_counts()
     print("Fichiers générés avec succès !")
-    print("- transactions.txt (1500 transactions)")
-    print("- user_counts.txt (50 utilisateurs)")
+    print("- transactions_generées (transactions)")
+    print("- Aller maintenant copier dans data/donnees.txt !")
+    print("- Justification : Afin d'éviter que nos données soient écrasées ! ")

@@ -136,7 +136,7 @@ rundynessai: bin/rundynessai
 	
 	
 	
-#ce bloc ne doit pas exister mais important pour mes tests
+#ce bloc ne doit pas exister en réalité, mais important pour mes tests
 ###########################################################
 # -------------------------------------------
 # === Bibliothèque dynamique ===
@@ -146,6 +146,8 @@ lib/librecommantion.so: $(OBJET_biblio)
 	$(CISSE) -fPIC -c src/reco.c -o ./obj/reco_pic.o -Iinclude $(ALERT)    		#je compile avec fpic
 	$(CISSE) -fPIC -c src/reco_KNN.c -o ./obj/reco_KNN_pic.o -Iinclude $(ALERT)
 	$(CISSE) -fPIC -c src/graphe.c -o ./obj/graphe_pic.o -Iinclude $(ALERT)
+	$(CISSE) -fPIC -c src/factorisation.c -o ./obj/factorisation_pic.o -Iinclude $(ALERT)
+	
 	
 	$(CISSE) -fPIC -shared -o lib/librecommantion.so $(OBJET_biblio_dyn) -Iinclude $(ALERT)
 
@@ -214,6 +216,16 @@ client: bin/client
 adresse:
 	@echo "Les adresses disponibles..."
 	hostname -I
+	
+
+###########################################################
+#-------------------------------------------------------------------------------
+#------------------- Générer les transactions ---------------------------------
+#-------------------------------------------------------------------------------
+
+genere:
+	@echo "Génération des transactions..."
+	python3 genere.py
 
 ###########################################################
 # -------------------------------------------
@@ -243,6 +255,7 @@ help:
 	@echo 'make adresse       - Voir les adresses disponibles'
 	@echo 'make clean         - Nettoyage des fichiers'
 	@echo 'make efface        - Nettoyage du terminal'
+	@echo 'make genere        - Générer vos propres Transactions'
 	
 
 ###########################################################

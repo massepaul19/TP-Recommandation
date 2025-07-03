@@ -249,14 +249,15 @@ void extraction() {
     scanf("%d", &ligne_fin);
 
     extraire_vers_fichier("data/donnees.txt", "data/KNN_TRAIN/Train.txt", ligne_debut, ligne_fin);
-
+    extraire_vers_fichier("data/donnees.txt", "Train.txt", ligne_debut, ligne_fin);
+    printf("\nExtraction terminée vers data/KNN_TRAIN/Train.txt et dans Train.txt \n ");
     printf("\nAppuyez sur Entrée pour continuer...");
     getchar(); 
     getchar();
 }
 
 
-void Menu_KNN(const char* train_file, const char* test_file) {
+void Menu_KNN(const char* train_file) {
 
     double** matrice_similarite = NULL;
     Prediction predictions[10000];
@@ -265,7 +266,6 @@ void Menu_KNN(const char* train_file, const char* test_file) {
     
     // Variables pour les fichiers (modifiables localement)
     char fichier_train[256];
-    char fichier_test[256];
     
     // Initialiser avec les paramètres ou les valeurs par défaut
     if (train_file != NULL) {
@@ -274,17 +274,10 @@ void Menu_KNN(const char* train_file, const char* test_file) {
         strcpy(fichier_train, "data/KNN_TRAIN/Train.txt");
     }
     
-    if (test_file != NULL) {
-        strcpy(fichier_test, test_file);
-    } else {
-        strcpy(fichier_test, "data/KNN_TRAIN/Test.txt");
-    }
-    
     while (1) {
         printf("\n\n=== MENU SYSTÈME KNN ===\n\n");
         printf("=========================================\n");
         printf("Fichier train : %s\n", fichier_train);
-        printf("Fichier test  : %s\n", fichier_test);
         printf("\nOptions :\n");
         printf("1. Calculer la matrice de Pearson\n");
         printf("2. Tester des prédictions individuelles Pearson(u , i)\n");
@@ -417,10 +410,10 @@ void Menu_KNN(const char* train_file, const char* test_file) {
                     break;
                 }
                 
-                printf("Fichier de test : %s\n", fichier_test);
+                printf("Fichier de test : %s\n", fichier_train);
                 printf("Calcul des prédictions en cours...\n");
                 
-                nb_predictions = Predict_all(recommandeur_global, fichier_test, predictions, 10000);
+                nb_predictions = Predict_all(recommandeur_global, fichier_train, predictions, 10000);
                 
                 if (nb_predictions > 0) {
                     printf("✓ Prédictions terminées avec succès !\n");
@@ -479,7 +472,6 @@ void Menu_KNN(const char* train_file, const char* test_file) {
 		    
 		    sauvegarder_predictions(chemin_fichier, predictions, nb_predictions);
 		    
-		    printf("✓ Résultats sauvegardés avec succès dans : %s\n", chemin_fichier);
 		    break;
 		}
 
@@ -581,7 +573,7 @@ void Menu_GRAPHE() {
         switch (choix) {
             case 1:
                 if (train_data) free(train_data);
-                train_data = lire_fichier_train("Train.txt", &nb_train);
+                train_data = lire_fichier_train("data/KNN_TRAIN/Train.txt", &nb_train);
                 break;
 
             case 2:
@@ -607,7 +599,7 @@ void Menu_GRAPHE() {
                 if (!pagerank) {
                     printf("Vous devez d'abord exécuter PageRank !\n");
                 } else {
-                    sauvegarder_pagerank(&graphe, pagerank, "pagerank_results.txt");
+                    sauvegarder_pagerank(&graphe, pagerank, "data/KNN_TRAIN/Resultats_pagerank.txt");
                 }
                 break;
                 
@@ -621,7 +613,7 @@ void Menu_GRAPHE() {
 			getchar(); // Nettoyage du buffer
 
 			if (graphe.map_users[id_user] == -1) {
-			    printf("❌ L'utilisateur %d n'existe pas dans les données.\n", id_user);
+			    printf(" L'utilisateur %d n'existe pas dans les données.\n", id_user);
 			} else {
 			    printf("Entrez le nombre de recommandations souhaitées : ");
 			    scanf("%d", &nb_recommandations);
@@ -633,15 +625,21 @@ void Menu_GRAPHE() {
 	    break;
 
  	    case 6: { 
-		    int id_user_test = 123; 
-		    int nb_reco_test = 5;   
+		    unsigned int id_user , nb_reco;
+            	    
+		    printf("Entrer l'ID Utilisateur: ");
+		    scanf("%d", &id_user);
+		    printf("Nombre de recommandations: ");
+		    scanf("%d", &nb_reco);
 		    
 		    printf("\nTest automatisation - Lancement du calcul...\n");
-		    char *resultat = traiter_recommandation_graphe(id_user_test, nb_reco_test);
+		    char *resultat = traiter_recommandation_graphe(id_user, nb_reco);
 		    printf("Recommandations générées :\n%s\n", resultat);
-	    break;	    
-	    }
 	    
+	           }
+	           
+	    break;
+
 	    case 0:
                 printf("Nettoyage mémoire...\n");
                 if (graphe.matrice_adjacence) {

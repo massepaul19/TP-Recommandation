@@ -11,6 +11,7 @@
 //void Menu_KNN(const char* train_file, const char* test_file);
 
 // Fonction pour afficher le menu principal
+
 void afficher_menu_principal() {
     printf("\n");
     printf("╔══════════════════════════════════════════════════════════════╗\n");
@@ -51,7 +52,7 @@ int main() {
             
             case 3:
                 printf("\n--- Système de recommandation KNN ---\n");
-                Menu_KNN("data/KNN_TRAIN/Train.txt" , "data/KNN_TRAIN/Test.txt");
+                Menu_KNN("data/KNN_TRAIN/Train.txt");
                 break;
             
             case 4:
@@ -68,14 +69,34 @@ int main() {
                 printf("╠══════════════════════════════════════════════════════════════╣\n");
                 printf("║                                                              ║\n");
                 printf("║  Système de Recommandation - Version 1.0                     ║\n");
-                printf("║  Utilise l'algorithme K-Nearest Neighbors (KNN)              ║\n");
+                printf("║  Utilise l'algorithme K-Nearest Neighbors (KNN) ,            ║\n");
+                printf("║  Factorisation Matricielle et Pae Rank                       ║\n");
                 printf("║  pour fournir des recommandations personnalisées             ║\n");
                 printf("║                                                              ║\n");
                 printf("║  Fonctionnalités :                                           ║\n");
                 printf("║  • Traitement et gestion des données                         ║\n");
-                printf("║  • Algorithme KNN pour les recommandations                   ║\n");
+                printf("║  • Algorithme pour les recommandations                       ║\n");
+                printf("║  • Génération des Transactions                               ║\n");
                 printf("║  • Interface utilisateur intuitive                           ║\n");
+                printf("║                                                              ║\n");     
+                printf("║  Methodes de Recommandations :                               ║\n");
+                printf("║  • Algorithme Facto. Matricielle pour les recommandations    ║\n");
+                printf("║  • Algorithme KNN pour les recommandations                   ║\n");
+                printf("║  • Algorithme Page Rank avec les Graphes                     ║\n");
                 printf("║                                                              ║\n");
+                printf("║  Connexion Client serveur :                                  ║\n");
+                printf("║  • Grace aux sockets et aux threads nous avons la possibilité║\n");
+                printf("║  d'avoir un serveur et plusieurs clints connectés            ║\n");
+                printf("║                                                              ║\n");
+                printf("║  Côté Réseau :                                 	       ║\n");
+                printf("║   Notre app offre une facilité d'adaptation au               ║\n");
+                printf("║   réseau pour les tests:                                     ║\n");
+                printf("║  d'avoir un serveur et plusieurs clints connectés            ║\n");
+                printf("║                                                              ║\n");
+                printf("║  	• Option 1 : Localhost avec 127.0.0.1                  ║\n");
+                printf("║  	• Option 2 : Grace à un AP (en réseau)                 ║\n");
+                printf("║                                                              ║\n");
+                printf("║                                             Paulo Masse      ║\n");
                 printf("╚══════════════════════════════════════════════════════════════╝\n");
                 printf("\nAppuyez sur Entrée pour continuer...");
                 getchar(); // Pour consommer le '\n' restant
@@ -85,9 +106,9 @@ int main() {
             case 0:
                 printf("\n╔══════════════════════════════════════════════════════════════╗\n");
                 printf("║                      MERCI D'AVOIR UTILISÉ                   ║\n");
-                printf("║                   LE SYSTÈME DE RECOMMANDATION               ║\n");
+                printf("║                  LE SYSTÈME DE RECOMMANDATION                ║\n");
                 printf("║                                                              ║\n");
-                printf("║                         Au revoir !                          ║\n");
+                printf("║                     Au revoir !   Paulo Masse                ║\n");
                 printf("╚══════════════════════════════════════════════════════════════╝\n");
                 exit(0);
                 

@@ -24,4 +24,4 @@ void menu_numerique(client_connection_t* client);
 
 void afficher_Masse_client();
 
-#endif // FONCTIONS_CLIENT_H
+#endif
