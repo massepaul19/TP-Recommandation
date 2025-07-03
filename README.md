@@ -1,6 +1,6 @@
 #----------------------------------------------------------------
-#  --------------------  TP RECOMMANDATION ----------------------
-## --------------- MASSE MASSE Paul - Basthylle -----------------
+# ---------------------  TP RECOMMANDATION ----------------------
+## --------------- MASSE MASSE PAUL - BASTHYLLE -----------------
 #----------------------------------------------------------------
 
 
@@ -100,7 +100,7 @@ typedef struct {
 
 structure pour gerer KNN
 
-```
+```c
 typedef struct {
     User users[MAX_USERS];
     Article articles[MAX_ARTICLES];
@@ -138,7 +138,7 @@ typedef struct {
 ```
 
 / Structure pour gerer la factorisation matricielle
-```
+```c
 typedef struct {
     double **U;         // Matrice des utilisateurs (M x K)
     double **V;         // Matrice des items (N x K)
@@ -159,7 +159,7 @@ typedef struct {
 ```
 
 structure pour gerer GRAPHE
-```
+```c
 typedef struct {
     int **matrice_adjacence;
     int taille_totale;
@@ -315,23 +315,6 @@ Options :
 
 Pour les trois algorithmes, veuillez suivre les étapes en ordre
 Autre tester directement les recommandations au dernier point de chaque menu concu pour automatiser toutes les autres etapes
-
-### Structures Auxiliaires
-
-```c
-typedef struct {
-    unsigned int id_user;
-    unsigned int id_article;
-    float note_predite;
-    double confiance;
-} Prediction;
-
-typedef struct {
-    int index_utilisateur;
-    unsigned int id_utilisateur;
-    double similarite;
-} Voisin;
-```
 
 ## 3. UTILISATION
 
@@ -538,3 +521,16 @@ $(EXEC): $(DOSSIER_OBJET)     # Compile l'exécutable principal
 bin/serveur                   # Serveur de recommandation
 bin/client                    # Client réseau
 ```
+
+make               # Compiler tout le programme
+make run           # Exécuter le programme
+make runstatic     # Exécuter avec bibliothèque statique
+make rundyn        # Exécuter avec bibliothèque dynamique
+make rundynessai   # Exécuter avec 3 bibliothèques dynamiques
+make serveur       # Démarrer le serveur
+make stop-serveur  # Arrêter le serveur
+make client        # Démarrer le client
+make adresse       # Voir les adresses disponibles
+make clean         # Nettoyage des fichiers
+make efface        # Nettoyage du terminal
+make genere        # Générer vos propres transactions
