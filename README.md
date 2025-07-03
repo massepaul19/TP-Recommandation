@@ -48,6 +48,7 @@ Pour faire simple, pour savoir comment executer le projet taper la commande make
 ### ===== Aide ==========
 ### -------------------------------------------
 
+```c
 help:
 	@echo '=== MENU D''AIDE POUR LA COMPILATION  Paulo Masse ======'
 	@echo 'make               - compiler tout le programme'
@@ -63,6 +64,7 @@ help:
 	@echo 'make efface        - Nettoyage du terminal'
 	@echo 'make genere        - Générer vos propres Transactions'
 
+```
 
 ### Structure des Données
 
